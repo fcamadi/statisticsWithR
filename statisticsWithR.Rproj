@@ -1,0 +1,18 @@
+Version: 1.0
+ProjectId: 464cf8cc-e553-46ee-9d8f-74c5b021598f
+
+RestoreWorkspace: Default
+SaveWorkspace: Default
+AlwaysSaveHistory: Default
+
+EnableCodeIndexing: Yes
+UseSpacesForTab: Yes
+NumSpacesForTab: 2
+Encoding: UTF-8
+
+RnwWeave: Sweave
+LaTeX: pdfLaTeX
+
+PythonType: system
+PythonVersion: 3.11.2
+PythonPath: /usr/bin/python3.11
