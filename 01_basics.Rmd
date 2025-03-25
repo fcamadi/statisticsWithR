@@ -144,14 +144,90 @@ Read the documentation for the function sort. What does it do? What does the arg
 ```{r}
 length(people1$heights)
 
-sort(people1$weights, decreasing = TRUE
+sort(people1$weights, decreasing = TRUE)
 ```
 
 
+### 2.4.5 Mathematical operations
 
 
+abs(x): computes the absolute value |x|
+
+sqrt(x): computes √x
+
+log(x): computes the logarithm of x with the natural number e as the base
+
+log(x, base = a): computes the logarithm of x with the number a as the base.
+
+a^x: computes a to the power of x
+
+exp(x): computes e to the power of x
+
+sin(x): computes sin(x)
+
+sum(x): when x is a vector x=(x1,x2,x3,…,xn), computes the sum of the elements of x: ∑ni=1xi
+
+prod(x): when x is a vector x=(x1,x2,x3,…,xn), it computes the product of the elements of x
+
+pi: a built-in variable with value π, the ratio of the circumference of a circle to its diameter.
+
+x %% a: computes x modulo a
+
+factorial(x): computes x!
+
+choose(n,k): computes 
+(n)
+(k)
 
 
+```{r}
+exp(1)
 
+sin(people1$weights)
+
+sum(people1$weights)
+
+factorial(4)
+
+choose(4,2)
+```
+
+
+**Exercise 2.8 Compute the following:**
+
+√π
+
+e2⋅log(4)
+
+
+```{r}
+sqrt(pi)
+
+exp(2)*log(4)
+```
+
+
+**Exercise 2.9 R will return non-numerical answers if you try to perform computations where the answer is infinite or undefined. Try the following to see some possible results:**
+
+- Compute 1/0
+
+1/0
+[1] Inf
+
+- Compute 0/0
+
+0/0
+[1] NaN
+
+
+Compute √−1
+
+sqrt(-1)
+[1] NaN
+Aviso:
+In sqrt(-1) : Se han producido NaNs
+
+
+### 2.5 Packages
 
 
