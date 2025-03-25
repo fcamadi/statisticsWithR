@@ -57,7 +57,7 @@ renders the output  [1] 4
 tells us that **x in fact is a vector, albeit with a single element**. Almost everything in R is a vector, in one way or another.
 
 
-Exercise 2.4 Do the following:
+**Exercise 2.4 Do the following:**
 
 Create two vectors, height and weight, containing the heights and weights of five fictional people (i.e., just make up some numbers!).
 Combine your two vectors into a data frame.
@@ -73,6 +73,85 @@ people1
 
 
 ### 2.4.4 Functions
+
+
+Compute the mean age of bookstore customers:
+
+```{r}
+mean(age)
+```
+
+Note that the code follows the pattern function_name(variable_name): the function’s name is mean and the variable’s name is age.
+
+
+Compute the **correlation** between the variables age and purchase:
+
+```{r}
+cor(bookstore$age, bookstore$purchase)
+```
+
+The answer, 0.59, means that there appears to be a fairly strong positive correlation between age and the purchase size, 
+which implies that older customers tend to spend more.
+
+On the other hand, just by looking at the data we can see that the oldest customer, aged 80, spent much more than anybody else – 160 monetary units. 
+It can happen that such outliers strongly influence the computation of the correlation. 
+By default, cor uses the **Pearson correlation formula**, which is known to be sensitive to outliers. 
+It is therefore of interest to also perform the computation using a formula that is more robust to outliers, such as the **Spearman correlation**.
+
+```{r}
+cor(age, purchase, method = "spearman")
+```
+
+The resulting correlation, 0.35, is substantially lower than the previous result. Perhaps the correlation isn’t all that strong after all.
+
+So, how can we know what arguments to pass to a function? We can look at the documentation  ->  ?cor
+
+
+Finally, there are a few functions that don’t require any input at all, because they don’t do anything with your variables. 
+One such example is **Sys.time()** which prints the current time on your system:
+
+Sys.time()  
+
+[1] "2025-03-25 21:48:15 CET"
+
+
+
+
+**Exercise 2.6 Using the data you created in Exercise 2.4, do the following:**
+
+Compute the mean height of the people.
+
+Compute the correlation between height and weight.
+
+```{r}
+mean(people1$heights)
+
+cor(people1$heights, people1$weights, method = "spearman")
+```
+
+
+**Exercise 2.7 Do the following:**
+
+Read the documentation for the function length. What does it do? Apply it to your height vector.
+
+Read the documentation for the function sort. What does it do? What does the argument decreasing (the values of which can be either FALSE or TRUE) do? Apply the function to your weight vector.
+
+?length
+"Get or set the length of vectors (including lists) and factors, and of any other R object for which a method has been defined."
+
+?sort
+
+```{r}
+length(people1$heights)
+
+sort(people1$weights, decreasing = TRUE)
+```
+
+
+
+
+
+
 
 
 
