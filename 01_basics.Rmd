@@ -144,7 +144,7 @@ Read the documentation for the function sort. What does it do? What does the arg
 ```{r}
 length(people1$heights)
 
-sort(people1$weights, decreasing = TRUE)
+sort(people1$weights, decreasing = TRUE
 ```
 
 
