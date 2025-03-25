@@ -1,0 +1,78 @@
+---
+title: "01_basics"
+author: "Fran Camacho"
+date: "2025-03-25"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## 1. Intro
+
+...
+
+
+## 2. The basics
+
+
+### 2.4.3 Vectors and data frames
+
+
+
+```{r}
+age <- c(10, 28, 48, 47, 71, 22, 80, 48, 30, 31)
+age
+
+age_months <- age * 12
+age_months
+```
+
+
+
+```{r}
+purchase <- c(14, 20, 59, 2, 12, 22, 160, 34, 34, 29)
+purchase
+```
+
+It would be nice to combine these two vectors into a table -> dataframe
+
+```{r}
+bookstore <- data.frame(age, purchase)
+bookstore
+```
+
+The fact that
+
+```{r}
+x <- 4
+x
+```
+
+
+renders the output  [1] 4
+
+tells us that **x in fact is a vector, albeit with a single element**. Almost everything in R is a vector, in one way or another.
+
+
+Exercise 2.4 Do the following:
+
+Create two vectors, height and weight, containing the heights and weights of five fictional people (i.e., just make up some numbers!).
+Combine your two vectors into a data frame.
+
+```{r}
+names <- c("foo", "mola", "nandia", "fefe", "ogogo")
+heights <- c(177, 220, 190, 168, 201)
+weights <- c(88, 110, 95, 60, 90)
+
+people1 <- data.frame(names, heights, weights)
+people1
+```
+
+
+### 2.4.4 Functions
+
+
+
