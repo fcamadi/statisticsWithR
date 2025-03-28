@@ -1,0 +1,68 @@
+---
+title: "Exploring Statistical Measures in R"
+author: "Fran Camacho"
+date: "2025-03-28"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Exploring Statistical Measures in R: Average, Variance, and Standard Deviation Explained
+
+
+https://www.geeksforgeeks.org/calculate-the-average-variance-and-standard-deviation-in-r-programming/
+
+
+
+```{r}
+# Load the ggplot2 package
+if (!require(ggplot2)) install.packages('ggplot2', dependencies = T)
+library(ggplot2)
+```
+
+
+```{r, fig.width=10}
+# Define a dataset
+set.seed(123)  # for reproducibility
+data <- rnorm(100, mean = 50, sd = 10)  # 100 random values, mean 50, sd 10
+
+# Calculate mean, variance, and standard deviation
+mean_value <- mean(data)
+sd_value <- sd(data)
+
+# Calculate the variance
+variance_value <- var(data)
+
+# Create the plot with variance annotation
+ggplot(data.frame(data), aes(x = data)) +
+  geom_density(fill = "lightblue", alpha = 0.5) +  # Density plot
+  geom_vline(aes(xintercept = mean_value), 
+             color = "red", linetype = "dashed", linewidth = 1.2) +  # Mean line
+  geom_vline(aes(xintercept = mean_value + sd_value), 
+             color = "green", linetype = "dotted", linewidth = 1) +  # SD line (right)
+  geom_vline(aes(xintercept = mean_value - sd_value), 
+             color = "green", linetype = "dotted", linewidth = 1) +  # SD line (left)
+  
+  labs(title = "Visualization of Mean, Variance, and Standard Deviation", 
+       x = "Data Values", y = "Density") +
+  
+  theme_minimal() +
+  
+  annotate("text", x = mean_value, y = 0.03, 
+           label = paste("Mean =", round(mean_value, 2)), color = "red", vjust = -1) + 
+  annotate("text", x = mean_value + sd_value, y = 0.02, 
+           label = paste("Mean + SD =", round(mean_value + sd_value, 2)), 
+           color = "green", vjust = -1) +
+  annotate("text", x = mean_value - sd_value, y = 0.02, 
+           label = paste("Mean - SD =", round(mean_value - sd_value, 2)), 
+           color = "green", vjust = -1) +
+  annotate("text", x = mean_value + 20, y = 0.04, 
+           label = paste("Variance =", round(variance_value, 2)), 
+           color = "blue", vjust = -1)
+
+```
