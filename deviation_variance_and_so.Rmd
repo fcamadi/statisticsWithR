@@ -1,0 +1,133 @@
+---
+title: "deviation.Rmd"
+author: "Fran Camacho"
+date: "2025-03-28"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## THE MEAN DEVIATION
+
+
+**Example 5.3.1**. The weights, in grams, of 10 pieces of scrap metal from a metal fab-
+rication process are 2.63, 2.68, 2.57, 2.73, 2.56, 2.62, 2.38, 2.45, 2.35, 2.53. Compute
+the mean deviation about the mean and mean deviation about the median.
+
+```{r}
+measures <- c(2.63, 2.68, 2.57, 2.73, 2.56, 2.62, 2.38, 2.45, 2.35, 2.53)
+
+paste("Mean  : ",mean(measures))
+paste("Median: ",median(measures))
+```
+
+
+
+```{r}
+dif_mean <- abs(measures - mean(measures))
+dif_mean
+dif_median <- abs(measures - median(measures))
+dif_median
+n <- length(measures)
+
+mean_abs_dev <- sum(dif_mean)/n
+median_abs_dev <- sum(dif_median)/n
+
+paste("Mean-absolute deviation: ", mean_abs_dev)
+paste("Median-absolute deviation: ", median_abs_dev)
+```
+
+"mad" returns a different value
+
+```{r}
+# Mean-absolute deviation (MAD)
+# https://search.r-project.org/CRAN/refmans/ie2misc/html/madstat.html
+
+paste("Mean-absolute deviation: ", mad(measures))
+```
+
+?????????????????????????????????????????????!!!!!!!!!!!!!!!
+
+
+**First and third quartile**
+
+```{r}
+quantile(measures, 0.25) # first quartile
+quantile(measures, 0.75) # third quartile
+```
+
+
+**Other quantiles**
+
+Any quantile can be computed with the quantile() function. For instance, the 4th decile or the 98th percentile:
+
+```{r}
+quantile(measures, 0.4)  # 4th decile
+quantile(measures, 0.98) # 98th percentile
+```
+
+
+**Interquartile range**
+
+The interquartile range (i.e., the difference between the first and third quartile) can be computed with the IQR() function:
+
+```{r}
+IQR(measures)
+```
+
+The interquartile range measures the spread bounding the middle 50 percent of the values of the data.
+
+
+## THE VARIANCE AND THE STANDARD DEVIATION
+
+
+- The variance of a set of observations x1 , . . . , xn is defined as the arithmetic mean
+of the squares of the deviations of the individual observations from their arithmetic mean
+
+- The positive square root of the variance is called the standard deviation.
+
+
+```{r}
+
+paste("Variance: ", var(measures))
+paste("Standard. deviation: ", sd(measures))
+
+```
+
+The standard deviation of a set of observations will be always positive even if all the observations in the data are negative. 
+Standard deviation provides a summary of variability or spread or scatter which reflects how scattered are the measurements from
+their arithmetic mean.
+
+
+**Example 5.4.1**. The heights of five people in centimeters are 183, 163, 172, 157, and 169. 
+Find the standard deviation of this data.
+
+
+```{r}
+heights <- c(183, 163, 172, 157, 169)
+var(heights)
+sd(heights)
+```
+
+In the book where I took this exercises from, it says var. is 76.96, and std. dev. is 8.77 !!!!!!!!!!!!!!!!!
+
+
+## SKEWNESS IN THE DATA
+
+If the observations in a data are spread in a perfect symmetrical manner about an average, then the mean and median are equal. 
+If the data has a single mode and it is perfectly symmetric, then the mean,the median and the mode coincide.
+
+Skewness is zero when the data is symmetric.
+
+If the frequencies and class intervals on the right of the median is an exact replica of those on the left of the median then the data is symmetric, 
+if not the data is asymmetric. 
+Asymmetry may happen when on one side the data is spread on a wider range so that the arithmetic mean of the whole data may lie on to the right or
+to the left of the median. If the arithmetic mean is shifted to the right of the median, as a result wider spread with smaller frequencies, 
+then we say that the data is skewed to the right or positively skewed. If the same thing happens on the left of the median then
+we say that the data is skewed to the left or negatively skewed.
+
+
+
