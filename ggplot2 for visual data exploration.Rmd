@@ -1,0 +1,118 @@
+---
+title: "ggplot2 for visual data exploration"
+author: "Fran Camacho"
+date: "2025-04-15"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Using ggplot2 for visual data exploration
+
+Load libraries
+
+```{r}
+install.packages("ggplot2")
+```
+
+
+
+Load the Titanic model training dataset and examining its features
+
+```{r}
+titanic_train <- read.csv("./Chapter11/titanic_train.csv")
+str(titanic_train)
+```
+
+Every ggplot2 visualization is composed of layers, which place graphics upon a blank canvas.
+Executing the ggplot() function alone creates an empty gray plot area with no data points:
+
+```{r}
+library(ggplot2)
+
+p <- ggplot(data = titanic_train)
+p
+```
+
+To create something more interesting than a blank gray coordinate system, we’ll need to add
+additional layers to the plot object stored in the p object.
+
+Let’s begin by creating a simple boxplot of the Age feature.
+
+To accomplish the same in the ggplot2 environment, we simply add geom_boxplot() to the blank
+coordinate system, with the aes() aesthetic mapping function indicating that we would like the
+Age feature to be mapped to the y coordinate as follows.
+
+```{r warning=FALSE}
+# R’s built-in boxplot function
+boxplot(titanic_train$Age)
+
+boxplot_1 <- p + geom_boxplot(mapping = aes(y = Age))
+boxplot_1
+```
+
+
+The resulting figures are largely similar, with only a few stylistic differences in how the data is presented.
+
+Although it may seem pointless to use the more complicated ggplot() visualization when the
+simpler function will suffice, the strength of the framework is its ability to visualize bivariate re-
+lationships with only small changes to the code. For example, suppose we’d like to examine how
+age is related to survival status:
+
+```{r warning=FALSE}
+# warning=FALSE
+
+p + geom_boxplot(aes(x = Age, y = as.factor(Survived)))
+```
+
+To examine the distribution of numeric features:
+
+```{r warning=FALSE}
+# plot version
+hist(titanic_train$Age)
+
+# ggplot version uses the geom_histogram()
+p + geom_histogram(aes(x = Age))
+```
+
+Again, where the ggplot2 framework shines is the ability to make a few small tweaks and reveal
+interesting relationships in the data. Here, let’s examine three variants of the same comparison
+of age and survival.
+
+**fill** colorizes the bars according to the levels of the factor provided
+
+```{r warning=FALSE}
+p + geom_histogram(aes(x = Age, fill = as.factor(Survived))) +
+  ggtitle("Distribution of Age by Titanic Survival Status")
+```
+
+Second, rather than having overlapping histograms, we can create a grid of side-by-side plots
+using the **facet_grid()** function:
+
+```{r warning=FALSE}
+p + geom_histogram(aes(x = Age, fill = as.factor(Survived))) +
+  facet_grid(cols = vars(Survived)) +
+  ggtitle("Distribution of Age by Titanic Survival Status")
+```
+
+Third, rather than using the histogram geom, we can use geom_density() to create a density plot:
+
+```{r warning=FALSE}
+p + geom_density(aes(x = Age,
+  color = as.factor(Survived),
+  fill = as.factor(Survived)),
+  alpha = 0.25) +
+  ggtitle("Density of Age by Titanic Survival Status")
+```
+
+
+
+```{r}
+
+```
+
+
+
+
