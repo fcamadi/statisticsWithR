@@ -11,9 +11,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Using ggplot2 for visual data exploration
 
+[From the book  "Machine Learning with R", by Brett Lantz].
+
+
+
 Load libraries
 
-```{r}
+```{r, echo=FALSE}
 install.packages("ggplot2")
 ```
 
@@ -84,7 +88,7 @@ of age and survival.
 **fill** colorizes the bars according to the levels of the factor provided
 
 ```{r warning=FALSE}
-p + geom_histogram(aes(x = Age, fill = as.factor(Survived))) +
+p + geom_histogram(aes(x = Age, fill = as.factor(Survived)), bins = 80) +
   ggtitle("Distribution of Age by Titanic Survival Status")
 ```
 
@@ -107,12 +111,72 @@ p + geom_density(aes(x = Age,
   ggtitle("Density of Age by Titanic Survival Status")
 ```
 
-
+Let’s examine a few more plots to see if we can uncover more details of the Titanic’s evacuation
+policies. We’ll begin by confirming the assumed differences in survival by gender.
 
 ```{r}
-
+p + geom_bar(aes(x = Sex)) +
+ggtitle("Titanic Passenger Counts by Gender")
 ```
 
+A more interesting visualization would be to compare the rate of survival by gender.
+
+To do this, we must not only supply the Survived outcome as the y parameter to the aes() function but also
+tell the geom_bar() function to compute a summary statistic of the data—in particular, using
+the mean function —using the stat and fun parameters as shown:
+
+```{r}
+p + geom_bar(aes(x = Sex, y = Survived),  stat = "summary", fun = "mean") +
+  ggtitle("Titanic Survival Rate by Gender")
+```
+
+Let's examine the passenger class (Pclass) feature in a few different ways.
+
+```{r}
+p + geom_bar(aes(x = Pclass, y = Survived),  stat = "summary", fun = "mean") +
+  ggtitle("Titanic Survival Rate by Passenger Class")
+```
+
+Color can be an effective tool to communicate additional dimensions. Using the fill parameter,
+we’ll create a simple bar chart of passenger counts with bars that are filled with color according
+to survival status, which is converted to a factor:
+
+```{r}
+p + geom_bar(aes(x = Pclass, fill = factor(Survived, labels = c("No", "Yes")))) +
+  labs(fill = "Survived") +
+  ylab("Number of Passengers") +
+  ggtitle("Titanic Survival Counts by Passenger Class")
+```
+
+The result highlights the fact that the overwhelming number of deceased came from the third-class section of the ship.
+
+Next, we’ll modify this plot using a position parameter that informs ggplot() how to arrange
+the colorized bars. In this case, we’ll set position = "fill", which creates a stacked bar chart
+that fills the vertical space—essentially giving each color in the stack a relative proportion out
+of 100 percent:
+
+```{r}
+p + geom_bar(aes(x = Pclass, fill = factor(Survived, labels = c("No", "Yes"))), position = "fill") +
+  labs(fill = "Survived") +
+  ylab("Proportion of Passengers") +
+  ggtitle("Titanic Survival by Passenger Class")
+```
+
+The resulting figure emphasizes the decreased odds of survival for the lower classes.
 
 
+Lastly, we’ll attempt to visualize the relationship between three dimensions: passenger class, gender, and survival. 
 
+The Pclass and Survived features define the x and y dimensions, leaving Sex to define the bar colors via the fill parameter. 
+
+Setting the position = "dodge" tells ggplot() to place the colored bars side-by-side rather than stacked, 
+while the stat and fun parameters compute the survival rate. 
+
+The full command is as follows:
+
+```{r}
+p + geom_bar(aes(x = Pclass, y = Survived, fill = Sex), 
+  position = "dodge", stat = "summary", fun = "mean") +
+  ylab("Survival Proportion") +
+  ggtitle("Titanic Survival by Passenger Class")
+```
