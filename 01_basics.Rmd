@@ -207,7 +207,8 @@ exp(2)*log(4)
 ```
 
 
-**Exercise 2.9 R will return non-numerical answers if you try to perform computations where the answer is infinite or undefined. Try the following to see some possible results:**
+**Exercise 2.9**
+R will return non-numerical answers if you try to perform computations where the answer is infinite or undefined. Try the following to see some possible results:**
 
 - Compute 1/0
 
@@ -228,6 +229,177 @@ Aviso:
 In sqrt(-1) : Se han producido NaNs
 
 
+
 ### 2.5 Packages
+
+In the rest of this chapter, we’ll make use of a package called ggplot2, which adds additional graphical features to R. 
+
+```{r}
+install.packages("ggplot2")
+
+library(ggplot2)
+```
+
+Exercise 2.10 Install the palmerpenguins package from CRAN. We’ll use it for many of the exercises and examples that follow.
+
+```{r}
+install.packages("palmerpenguins")
+
+library(palmerpenguins)
+```
+
+
+### 2.6 Descriptive statistics
+
+
+To begin with, let’s explore the **msleep** dataset.
+
+```{r}
+msleep
+```
+
+
+To view all 83 rows and all 11 variables, use:
+
+```{r}
+View(msleep)
+```
+
+To find information about the data frame containing the data, some useful functions are:
+
+head(msleep)
+tail(msleep)
+dim(msleep)
+str(msleep)
+names(msleep)
+
+
+```{r}
+str(msleep)
+```
+
+**Numerical data**
+
+```{r}
+summary(msleep)
+```
+
+Finally, you’ll notice that msleep isn’t listed among the variables in the Environment pane in RStudio. To include it there, you can run:
+
+```{r}
+data(msleep)
+```
+
+
+```{r}
+
+mean(msleep$sleep_total)      # Mean
+median(msleep$sleep_total)    # Median
+max(msleep$sleep_total)       # Max
+min(msleep$sleep_total)       # Min
+sd(msleep$sleep_total)        # Standard deviation
+var(msleep$sleep_total)       # Variance
+quantile(msleep$sleep_total)  # Various quantiles
+
+```
+
+To see how many animals sleep for more than 8 hours a day, we can use the following:
+
+```{r}
+sum(msleep$sleep_total > 8)   # Frequency (count)
+mean(msleep$sleep_total > 8)  # Relative frequency (proportion)
+```
+
+Note that the NA values have not been removed from msleep. Setting na.rm = TRUE simply tells R to ignore them in a particular computation, not to delete them:
+
+```{r}
+mean(msleep$sleep_rem, na.rm = TRUE)
+```
+
+We run into the same problem if we try to compute the correlation between sleep_total and sleep_rem:
+
+```{r}
+cor(msleep$sleep_total, msleep$sleep_rem)
+```
+
+
+```{r}
+cor(msleep$sleep_total, msleep$sleep_rem, use = "complete.obs")  # <- use complete obsevations only
+```
+
+
+**Categorical data**
+
+```{r}
+table(msleep$vore)
+```
+
+
+```{r}
+round(proportions(table(msleep$vore)),3)
+```
+
+The table function can also be used to construct a cross-table that shows the counts for different combinations of two categorical variables:
+
+```{r}
+# Counts:
+table(msleep$vore, msleep$conservation)
+
+# Proportions, per row:
+proportions(table(msleep$vore, msleep$conservation), margin = 1)
+
+# Proportions, per column:
+proportions(table(msleep$vore, msleep$conservation), margin = 2)
+
+# Proportions, out of total:
+proportions(table(msleep$vore, msleep$conservation))
+```
+
+### 2.7 Plotting numerical data
+
+We will mainly focus on creating plots using the **ggplot2** package, which allows us to create good-looking plots using 
+the so-called **grammar of graphics**. The grammar of graphics is a set of structural rules that helps us establish a language 
+for graphics. The beauty of this is that (almost) all plots will be created with functions that all follow the same logic, or grammar.
+
+The three key components to grammar of graphics plots are:
+
+- Data: observations in your dataset,
+    
+- Aesthetics: mappings from the data to visual properties (like axes and sizes of geometric objects), and
+    
+- Geoms: geometric objects representing what you see in the plot, e.g., lines or points.
+
+
+
+1) let’s make a scatterplot by plotting the total sleep time of an animal against the REM sleep time of an animal.
+
+
+```{r, warning=FALSE}
+
+plot(msleep$sleep_total, msleep$sleep_rem)
+
+plot(msleep$sleep_total, msleep$sleep_rem, pch = 16)
+grid()
+
+ggplot(msleep, aes(x = sleep_total, y = sleep_rem)) + 
+  geom_point()
+```
+
+The ggplot2 code looks… different. 
+This is because it uses the grammar of graphics, which in many ways is a language of its own, different from how we otherwise work with R.
+
+The syntax used to create the ggplot2 scatterplot was in essence **ggplot(data, aes) + geom**. 
+
+
+**Exercise 2.12**
+Create a scatterplot with total sleep time along the x-axis and time awake along the y-axis (using the msleep data). 
+What pattern do you see? Can you explain it?
+
+```{r, warning=FALSE}
+ggplot(msleep, aes(sleep_total, awake)) +
+      geom_point()
+```
+
+
 
 
