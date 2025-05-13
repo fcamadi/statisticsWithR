@@ -601,9 +601,66 @@ ggplot(penguins, aes(bill_length_mm, flipper_length_mm)) +   # no colour = vore 
 ```
 
 
+**Boxplots**
+
+Base R:
+
+```{r}
+boxplot(sleep_total ~ vore, data = msleep)
+```
+
+ggplot2:
+
+```{r}
+ggplot(msleep, aes(vore, sleep_total)) +
+      geom_boxplot()
+```
+
+
+The boxes visualise important descriptive statistics for the different groups, similar to what we got using summary:
+
+- Median: thick black line inside the box.
+- First quartile: bottom of the box.
+- Third quartile: top of the box.
+- Minimum: end of the line (“whisker”) that extends from the bottom of the box.
+- Maximum: end of the line that extends from the top of the box.
+    
+- Outliers: observations that deviate too much11 from the rest are shown as separate points. 
+These outliers are not included in the computation of the median, quartiles and the extremes.
 
 
 
+
+
+**Exercise 2.17**
+
+Using the penguins data, do the following:
+
+1. Create boxplots of bill lengths, grouped by species.
+
+```{r}
+ggplot(penguins, aes(species, bill_length_mm)) +
+      geom_boxplot()
+```
+
+2. Read the documentation for geom_boxplot. How can you change the colours of the boxes and their outlines?
+
+```{r}
+ggplot(penguins, aes(species, bill_length_mm)) +
+      geom_boxplot(colour = "brown", fill = "lightblue")
+```
+
+
+3. Add geom_jitter(size = 0.5, alpha = 0.25) to the plot. What happens?
+
+```{r}
+ggplot(penguins, aes(species, bill_length_mm)) +
+      geom_boxplot(colour = "brown", fill = "lightgreen") +
+      geom_jitter(size = 0.75, alpha = 0.75, height = 0.5)
+```
+
+**geom_jitter can be used to plot the individual observations on top of the histogram.**
+It is often a good idea to set a small size and a low alpha in order not to cover the boxes completely.
 
 
 
