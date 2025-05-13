@@ -356,6 +356,7 @@ proportions(table(msleep$vore, msleep$conservation), margin = 2)
 proportions(table(msleep$vore, msleep$conservation))
 ```
 
+
 ### 2.7 Plotting numerical data
 
 We will mainly focus on creating plots using the **ggplot2** package, which allows us to create good-looking plots using 
@@ -435,7 +436,6 @@ ggplot(msleep, aes(sleep_total, sleep_rem, colour = sleep_cycle)) +
       geom_point() +
       labs(x = "Total sleep time (h)", y = "Total sleep time REM (h)")
 ```
-
 
 
 
@@ -664,9 +664,151 @@ It is often a good idea to set a small size and a low alpha in order not to cove
 
 
 
+**Histograms**
+
+
+Base R:
+
+```{r}
+hist(msleep$sleep_total)
+```
+
+
+ggplot2:
+
+```{r}
+ggplot(msleep, aes(sleep_total)) +
+      geom_histogram()
+```
 
 
 
+**Exercise 2.18**
+
+Using the penguins data, do the following:
+
+1. Create a histogram of bill lengths.
+
+```{r}
+ggplot(penguins, aes(bill_length_mm)) +
+  geom_histogram()
+```
+
+
+
+2. Create histograms of bill lengths for different species, using facetting.
+
+```{r}
+ggplot(penguins, aes(bill_length_mm)) +
+  geom_histogram() +
+  facet_wrap(~ species)
+```
+
+3. Add a suitable argument to geom_histogram to add black outlines around the bars.
+
+```{r}
+ggplot(penguins, aes(bill_length_mm)) +
+  geom_histogram(colour = "black") +
+  facet_wrap(~ species)
+```
+
+
+### 2.8 Plotting categorical data
+
+
+Base R:
+
+```{r}
+barplot(table(msleep$vore))
+```
+
+
+ggplot2:
+
+```{r}
+ggplot(msleep, aes(vore)) +
+      geom_bar()
+```
+
+To create a stacked bar chart using ggplot2:
+
+```{r}
+ggplot(msleep, aes(factor(1), fill = vore)) +
+      labs(x = "Vore", y = "Count") +
+      geom_bar()
+```
+
+
+
+
+**Exercise 2.19** 
+
+Using the penguins data, do the following:
+
+1. Create a bar chart of species.
+
+```{r}
+ggplot(penguins, aes(species)) +
+      labs(x = "Species", y = "Count") +
+      geom_bar()
+```
+
+2. Add different colours to the bars by adding a fill argument to geom_bar.
+
+```{r}
+ggplot(penguins, aes(species)) +
+      labs(x = "Species", y = "Count") +
+      geom_bar(fill = c("red", "green", "blue"))
+```
+
+3. Check the documentation for geom_bar. How can you decrease the width of the bars?
+
+```{r}
+ggplot(penguins, aes(species)) +
+      labs(x = "Species", y = "Count") +
+      geom_bar(fill = c("red", "green", "blue"), width = 0.5)
+```
+
+4. Return to the code you used for part 1. Add fill = sex to the aes. What happens?
+
+```{r}
+ggplot(penguins, aes(species, fill = sex)) +
+      labs(x = "Species", y = "Count") +
+      geom_bar(width = 0.5)
+```
+
+5. Next, add position = "dodge" to geom_bar. What happens?
+
+```{r}
+ggplot(penguins, aes(species, fill = sex)) +
+      labs(x = "Species", y = "Count") +
+      geom_bar(position = "dodge", width = 0.5)
+```
+
+
+6. Add coord_flip() to the plot. What happens?
+
+```{r}
+ggplot(penguins, aes(species, fill = sex)) +
+      labs(x = "Species", y = "Count") +
+      geom_bar(position = "dodge", width = 0.5) +
+      coord_flip()
+```
+
+**Saving your plot**
+
+```{r}
+myPlot <- ggplot(msleep, aes(sleep_total, sleep_rem)) +
+      geom_point()
+
+myPlot
+```
+
+Save it with ggsave:
+
+```{r}
+#ggsave("filename.pdf", myPlot, width = 5, height = 5)
+```
 
 
 
