@@ -79,6 +79,7 @@ Compute the mean age of bookstore customers:
 
 ```{r}
 mean(age)
+mean(bookstore$age)
 ```
 
 Note that the code follows the pattern function_name(variable_name): the function’s name is mean and the variable’s name is age.
@@ -287,7 +288,7 @@ summary(msleep)
 Finally, you’ll notice that msleep isn’t listed among the variables in the Environment pane in RStudio. To include it there, you can run:
 
 ```{r}
-data(msleep)
+msleep <- data.frame(msleep)
 ```
 
 
@@ -373,6 +374,7 @@ The three key components to grammar of graphics plots are:
 
 1) let’s make a scatterplot by plotting the total sleep time of an animal against the REM sleep time of an animal.
 
+plot
 
 ```{r, warning=FALSE}
 
@@ -381,11 +383,16 @@ plot(msleep$sleep_total, msleep$sleep_rem)
 plot(msleep$sleep_total, msleep$sleep_rem, pch = 16)
 grid()
 
+```
+ggplot
+
+```{r}
 ggplot(msleep, aes(x = sleep_total, y = sleep_rem)) + 
   geom_point()
 ```
 
-The ggplot2 code looks… different. 
+
+The ggplot2 code looks ... different. 
 This is because it uses the grammar of graphics, which in many ways is a language of its own, different from how we otherwise work with R.
 
 The syntax used to create the ggplot2 scatterplot was in essence **ggplot(data, aes) + geom**. 
@@ -399,6 +406,89 @@ What pattern do you see? Can you explain it?
 ggplot(msleep, aes(sleep_total, awake)) +
       geom_point()
 ```
+
+**Colours, shapes and axis labels**
+
+
+```{r}
+ggplot(msleep, aes(sleep_total, sleep_rem)) +
+      #geom_point() +
+      geom_point(colour = "blue") +
+      labs(x = "Total sleep time (h)")
+```
+
+Use the colours of the point to separate different categories. This is done by adding a **colour argument** to aes
+
+
+```{r}
+ggplot(msleep, aes(sleep_total, sleep_rem, colour = vore)) +
+      geom_point() +
+      labs(x = "Total sleep time (h)", y = "Total sleep time REM (h)")
+```
+
+What happens if we use a continuous variable, such as the sleep cycle length sleep_cycle to set the colour?
+
+A gradient is used:
+
+```{r}
+ggplot(msleep, aes(sleep_total, sleep_rem, colour = sleep_cycle)) +
+      geom_point() +
+      labs(x = "Total sleep time (h)", y = "Total sleep time REM (h)")
+```
+
+
+
+
+**Exercise 2.13** 
+
+Using the penguins data, do the following:
+
+1. Create a scatterplot with bill length along the x-axis and flipper length along the y-axis. Change the x-axis label to read “Bill length (mm)” and the y-axis label to “Flipper length (mm)”. Use species to set the colour of the points.
+
+```{r}
+ggplot(penguins, aes(x = bill_length_mm, y = flipper_length_mm, colour = species)) +
+      geom_point() +
+      labs(x = "Bill length (mm)", y = "Flipper length (mm)")
+```
+
+2. Try adding the argument alpha = 1 to geom_point, i.e., geom_point(alpha = 1). Does anything happen? Try changing the 1 to 0.75 and 0.25 and see how that affects the plot.
+
+```{r}
+ggplot(penguins, aes(x = bill_length_mm, y = flipper_length_mm, colour = species)) +
+      geom_point(alpha=0.5) +
+      labs(x = "Bill length (mm)", y = "Flipper length (mm)")
+```
+
+We can change the opacity of the points by adding an **alpha argument** to geom_point. This is useful when the plot contains overlapping points:
+
+
+
+
+**Exercise 2.14**
+
+Similar to how you changed the colour of the points, you can also change their size and shape. 
+The arguments for this are called size and shape.
+
+1. Change the scatterplot from Exercise 2.13 so that animals from different islands are represented by different shapes.
+
+```{r}
+ggplot(penguins, aes(x = bill_length_mm, y = flipper_length_mm, colour = species, shape = island)) +
+      geom_point(alpha=0.9) +
+      labs(x = "Bill length (mm)", y = "Flipper length (mm)")
+```
+
+2. Then change it so that the size of each point is determined by the body mass, i.e., the variable body_mass_g.
+
+```{r, fig.width=10}
+
+ggplot(penguins, aes(x = bill_length_mm, y = flipper_length_mm, colour = species, shape = island, size = body_mass_g)) +
+      geom_point(alpha=0.9) +
+      labs(x = "Bill length (mm)", y = "Flipper length (mm)")
+```
+
+
+**Axis limits and scales**
+
 
 
 
