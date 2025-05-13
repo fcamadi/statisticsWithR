@@ -560,4 +560,60 @@ ggplot(msleep, aes(bodywt, brainwt, colour = sleep_total)) +
       scale_y_log10()
 ```
 
+**Comparing groups**
+
+
+```{r} 
+ggplot(msleep, aes(brainwt, sleep_total)) +   # no colour = vore here
+      geom_point() +
+      labs(x = "Brain weight (logarithmic scale)", y = "Total sleep time") +
+      scale_x_log10() +
+      facet_wrap(~ vore)                      # but fact_wrap
+```
+
+Note that the x-axes and y-axes of the different plots in the grid all have the same scale and limits.
+
+
+
+**Exercise 2.16** 
+
+Using the penguins data, do the following:
+
+1. Create a scatterplot with bill_length_mm along the x-axis and flipper_length_mm along the y-axis, facetted by species.
+
+```{r} 
+ggplot(penguins, aes(bill_length_mm, flipper_length_mm)) +   # no colour = vore here
+      geom_point() +
+      labs(x = "Bill length", y = "Flipper length time") +
+      ##scale_x_log10() +
+      facet_wrap(~ species)                                  # but fact_wrap
+```
+
+
+2. Read the documentation for facet_wrap (?facet_wrap). How can you change the number of rows in the plot grid? Create the same plot as in part 1, but with 2 rows.
+
+```{r} 
+ggplot(penguins, aes(bill_length_mm, flipper_length_mm)) +   # no colour = vore here
+      geom_point() +
+      labs(x = "Bill length", y = "Flipper length") +
+      ##scale_x_log10() +
+      facet_wrap(~ species, nrow=2)                          # but fact_wrap
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
