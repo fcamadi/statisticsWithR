@@ -489,7 +489,75 @@ ggplot(penguins, aes(x = bill_length_mm, y = flipper_length_mm, colour = species
 
 **Axis limits and scales**
 
+Next, assume that we wish to study the relationship between animals’ brain sizes and their total sleep time:
+
+```{r}
+ggplot(msleep, aes(brainwt, sleep_total, colour = vore)) + 
+      geom_point() +
+      labs(x = "Brain weight", y = "Total sleep time")
+```
+There are two animals with brains that are much heavier than the rest (African elephant and Asian elephant). 
+These outliers distort the plot, making it difficult to spot any patterns. 
+We can try changing the x-axis to only go from 0 to 1.5 by adding xlim to the plot, to see if that improves it:
+
+```{r}
+ggplot(msleep, aes(brainwt, sleep_total, colour = vore)) + 
+      geom_point() +
+      labs(x = "Brain weight", y = "Total sleep time") +
+      xlim(0, 1)
+```
+This is slightly better, but we still have a lot of points clustered near the y-axis, and some animals are now missing from the plot. 
+If instead we wished to change the limits of the y-axis, we would have used ylim in the same fashion.
+
+Another option is to rescale the x-axis by applying a **log transform** to the brain weights, which we can do directly in aes:
 
 
+```{r}
+ggplot(msleep, aes(log(brainwt), sleep_total, colour = vore)) + 
+      geom_point() +
+      labs(x = "log(Brain weight)", y = "Total sleep time")
+```
+
+This is a better-looking scatterplot, with a weak declining trend. We didn’t have to remove the outliers (elephants) to create it, which is good.
+The downside is that the x-axis now has become difficult to interpret.
+A third option that mitigates this is to add scale_x_log10 to the plot, which changes the scale of the x-axis to a **log10 scale** 
+(which increases interpretability because the values shown at the ticks still are on the original x-scale).
+
+
+```{r}
+ggplot(msleep, aes(brainwt, sleep_total, colour = vore)) + 
+      geom_point() +
+      labs(x = "Brain weight (logarithmic scale)", y = "Total sleep time") +
+      scale_x_log10()
+```
+
+The numbers on the x-axis are displayed with scientific notation. 
+You can change the settings in R to use decimals, instead, using the options function as follows:
+
+```{r}
+
+options(scipen = 1000)
+
+ggplot(msleep, aes(brainwt, sleep_total, colour = vore)) + 
+      geom_point() +
+      labs(x = "Brain weight (logarithmic scale)", y = "Total sleep time") +
+      scale_x_log10()
+```
+
+**Exercise 2.15**
+
+Using the msleep data, create a plot of log-transformed body weight versus log-transformed brain weight. 
+Use total sleep time to set the colours of the points. Change the text on the axes to something informative.
+
+```{r}
+
+options(scipen = 1000)
+
+ggplot(msleep, aes(bodywt, brainwt, colour = sleep_total)) + 
+      geom_point() +
+      labs(x = "Brain weight (logarithmic scale)", y = "Body weight (logarithmic scale)") +
+      scale_x_log10() +
+      scale_y_log10()
+```
 
 
