@@ -132,7 +132,7 @@ matrix(x, nrow = 3, ncol = 2, byrow = FALSE)
 
 
 ```{r}
-airquality_raw <- data.frame(airquality) 
+airquality <- data.frame(airquality) 
 ```
 
 ```{r}
@@ -170,6 +170,392 @@ airquality[, c(2, 4, 6)] # The 2nd, 4th and 6th columns of the data
 airquality[, -2]    # All columns except the 2nd one
 
 airquality[, c("Temp", "Wind")] # The Temp and Wind columns
+```
+
+
+
+### 2.11.3 Filtering using conditions
+
+
+How to find the maximum value in the Temp vector:
+
+```{r}
+max(airquality$Temp)
+```
+
+But can we find out which day this corresponds to? 
+
+```{r}
+which.max(airquality$Temp)  # returns the index of the observation with the maximum value
+```
+
+(now) If we want to have a look at the entire row for that day, we can use
+
+```{r}
+#airquality[120,]
+airquality[which.max(airquality$Temp),]
+```
+
+
+Check days with Temp above 90
+
+```{r}
+airquality[airquality$Temp > 90, ]
+```
+The same using function **subset()**
+
+```{r}
+subset(airquality, Temp > 90)
+```
+
+When checking a condition for all elements in a vector, we can use **which** to get the indices of the elements that fulfill the condition:
+
+```{r}
+which(airquality$Temp > 90)
+```
+
+If we want to check if all or any elements fulfill a condition:
+
+```{r}
+all(airquality$Temp > 90)
+```
+
+
+```{r}
+any(airquality$Temp > 90)
+```
+
+To find how many elements fulfill a condition, we can use sum:
+
+```{r}
+sum(airquality$Temp > 90)
+```
+
+
+
+**Exercise 2.26**
+
+The following tasks all involve checking conditions for the airquality data:
+
+i) Which was the coldest day during the period?
+
+```{r}
+#which.min(airquality$Temp)
+airquality[which.min(airquality$Temp),]
+```
+
+
+ii) How many days was the wind speed greater than 17 mph?
+
+```{r}
+sum(airquality$Wind > 17)
+```
+
+iii) How many missing values are there in the Ozone vector?
+
+```{r}
+sum(is.na(airquality$Ozone))
+```
+
+iv) How many days are there where the temperature was below 70 and the wind speed was above 10?
+
+```{r}
+sum(airquality$Temp<70 & airquality$Wind>10)
+```
+
+
+### 2.12 Grouped summaries
+
+Being able to compute the mean temperature for the airquality data during the entire period is great,
+but it would be even better if we also had a way to compute it for each month.
+The **aggregate** function can be used to create that kind of grouped summary.
+
+ let’s compute the mean temperature for each month:
+ 
+```{r}
+aggregate(Temp ~ Month, data = airquality, FUN = mean)
+```
+ 
+```{r}
+aggregate(Ozone ~ Month, data = airquality, FUN = mean)
+```
+
+By default, aggregate removes NA values before computing the grouped summaries.
+
+It is also possible to compute summaries for multiple variables at the same time.
+
+```{r}
+aggregate(cbind(Temp, Wind) ~ Month, data = airquality, FUN = sd)  # sd = standard deviation
+```
+
+aggregate can also be used to count the number of observations in the groups. 
+For instance, we can count the number of days in each month. In order to do so, 
+we put a variable with no NA values on the left-hand side in the formula, and use length
+
+```{r}
+aggregate(Temp ~ Month, data = airquality, FUN = length)
+```
+
+Another function that can be used to compute grouped summaries is **by**. 
+The results are the same, but the output is not as nicely formatted. 
+
+```{r}
+by(airquality$Temp, airquality$Month, mean)
+```
+
+What makes by useful is that unlike aggregate it is easy to use with functions that take more than one variable as input. 
+If we want to compute the correlation between Wind and Temp grouped by month
+
+```{r}
+names(airquality)  # Check that Wind and Temp are in columns 3 and 4
+
+by(airquality[, 3:4], airquality$Month, cor)
+```
+
+
+
+
+**Exercise 2.28** 
+
+Install the datasauRus package using install.packages("datasauRus") (note the capital R!). 
+It contains the dataset datasaurus_dozen. Check its structure and then do the following:
+
+```{r}
+install.packages("datasauRus")
+library(datasauRus)
+```
+
+i) Compute the mean of x, mean of y, standard deviation of x, standard deviation of y, and correlation between x and y,
+grouped by dataset. Are there any differences between the 12 datasets?
+
+```{r}
+str(datasaurus_dozen)
+head(datasaurus_dozen)
+```
+
+```{r}
+aggregate(x ~ dataset, data = datasaurus_dozen, FUN = mean)
+aggregate(y ~ dataset, data = datasaurus_dozen, FUN = mean)
+aggregate(x ~ dataset, data = datasaurus_dozen, FUN = sd)
+aggregate(y ~ dataset, data = datasaurus_dozen, FUN = sd)
+```
+
+```{r}
+#solution
+aggregate(cbind(x, y) ~ dataset, data = datasaurus_dozen, FUN = mean)
+aggregate(cbind(x, y) ~ dataset, data = datasaurus_dozen, FUN = sd)
+```
+
+
+
+```{r}
+by(datasaurus_dozen[, 2:3], datasaurus_dozen$dataset, cor)
+```
+
+
+ii) Make a scatterplot of x against y for each dataset (use facetting!). Are there any differences between the 12 datasets?
+
+```{r}
+# Load the ggplot2 package
+if (!require(ggplot2)) install.packages('ggplot2', dependencies = T)
+library(ggplot2)
+```
+
+```{r, fig.width=14}
+ggplot(datasaurus_dozen, aes(x,y, colour = dataset)) +
+  geom_point() +
+  # facet_grid(cols = vars(dataset)) +
+  facet_wrap(~ dataset, ncol = 3) +
+  ggtitle("Exercise 2.28- 2")
+```
+
+### 2.13 Using |> (pipes)
+
+
+Consider the code you used to solve part 1 of Exercise 2.25:
+
+```{r}
+#bookstore$rev_per_minute <- bookstore$purchase / bookstore$visit_length
+```
+
+Wouldn’t it be more convenient if you didn’t have to write the bookstore$ part each time? To just say once that you are manipulating bookstore, 
+and have R implicitly understand that all the variables involved reside in that data frame? 
+
+
+```{r}
+install.packages("dplyr")
+library(dplyr)
+```
+
+Let’s say that we are interested in finding out what the mean wind speed (in m/s rather than mph) on hot days (temperature above 80, say)
+in the airquality data is, aggregated by month. We could do something like this:
+
+```{r}
+# Extract hot days:
+airquality2 <- airquality[airquality$Temp > 80, ]
+
+# Convert wind speed to m/s:
+airquality2$Wind <- airquality2$Wind * 0.44704
+
+# Compute mean wind speed for each month:
+hot_wind_means <- aggregate(Wind ~ Month, data = airquality2, FUN = mean)
+
+hot_wind_means
+```
+
+A downside is that we end up with a copy of airquality that we maybe won’t need again. 
+We could avoid that by putting all the operations inside of aggregate:
+
+```{r}
+hot_wind_means <-  aggregate(Wind*0.44704 ~ Month,
+                            data = airquality[airquality$Temp > 80, ],
+                            FUN = mean)
+
+hot_wind_means
+```
+
+The problem with this is that it is a little difficult to follow because we have to read the code from the inside out. 
+When we run the code, R will first extract the hot days, then convert the wind speed to m/s, and then compute the grouped means. 
+So the operations happen in an order that is the opposite of the order in which we wrote them.
+
+R 4.1 introduced a new operator, |>, called a pipe, which can be used to chain functions together.
+... so that the operations are written in the order they are performed.
+
+Three operations are required to solve the airquality wind speed problem:
+
+- Extract the hot days.
+- Convert the wind speed to m/s.
+- Compute the grouped means.
+
+
+```{r}
+
+airquality |>
+      filter(Temp > 80) |>                         # Extract hot days
+      mutate(Wind = Wind * 0.44704) |>             # Convert wind speed to m/s
+      group_by(Month) |> 
+      summarise(Mean_wind_speed = mean(Wind)) ->   # Compute mean wind speed for each month
+      hot_wind_means
+
+hot_wind_means
+```
+
+**Exercise 2.29**
+
+Using the bookstore data:
+
+
+```{r}
+age <- c(28, 48, 47, 71, 22, 80, 48, 30, 31)
+purchase <- c(20, 59, 2, 12, 22, 160, 34, 34, 29)
+visit_length <- c(5, 2, 20, 22, 12, 31, 9, 10, 11)
+bookstore <- data.frame(age, purchase, visit_length)
+```
+
+
+Add a new variable rev_per_minute which is the ratio between purchase and the visit length, using a pipe and a function from dplyr.
+
+```{r}
+bookstore <- bookstore |> mutate(rev_per_minute = purchase/visit_length) 
+
+bookstore
+```
+
+
+### 2.13.2 Placeholders and with
+
+A pipe sends the output from the left-hand side to the first argument of the right-hand function. 
+This won’t work if the first argument of the right-hand function doesn’t agree with the output from the left-hand function:
+
+```{r}
+install.packages("ggplot2")  # to load dataset msleep
+library(ggplot2)
+
+msleep <- data.frame(msleep)
+```
+
+```{r}
+
+#msleep$sleep_total
+#msleep$sleep_rem
+
+msleep |> cor(sleep_total, sleep_rem, use = "complete.obs")  # -> Error: objeto 'sleep_rem' no encontrado
+```
+The first argument of cor should be one of the variables to compute the correlation for, and not a data frame,
+which is what the pipe passes on. 
+To use pipes with functions like this, we can wrap cor with the with function. 
+
+This (**with**) takes the data frame from the left-hand side as input and then applies cor to variables in that dataset:
+
+```{r}
+msleep |> with(cor(sleep_total, sleep_rem, use = "complete.obs"))
+```
+
+
+There are some other functions that have an argument for passing a data frame, but not as their first argument. 
+An example is **aggregate**. Its first argument is a formula specifying what variables we are interested in. 
+
+We’ve previously used it as follows:
+
+```{r}
+aggregate(Temp ~ Month, data = airquality, FUN = mean)
+```
+
+
+If we wanted to use it in a pipeline, we can do so by writing **data = _** in the function’s arguments.
+
+```{r}
+airquality |> aggregate(Temp ~ Month,
+                        data = _,         # it takes dataset airquality that comes from left of the pipe
+                        FUN = mean)
+```
+
+(It does not make this easier. So I'm not going to use |> for this).
+
+
+## 2.14 Flavours of R: base and tidyverse
+
+"A defining property of the tidyverse is that there are separate functions for everything, which is perfect for code that relies on pipes. 
+In contrast, base R uses fewer functions, but with more parameters, to perform the same tasks."
+
+
+## 2.15 Importing data
+
+...
+
+Importing Excel files
+
+```{r}
+
+# install.packages("openxlsx")
+# library(openxlsx)
+
+# imported_from_Excel <- read.xlsx(file_path)
+
+#View(imported_from_Excel)
+#str(imported_from_Excel)
+
+```
+
+
+Exporting data
+
+```{r}
+# Export to .csv:
+# write.csv(bookstore, "bookstore.csv")
+
+# Export to .xlsx (Excel):
+# library(openxlsx)
+# write.xlsx(bookstore, "bookstore.xlsx")
+```
+
+
+Saving and loading data
+
+```{r}
+# save(bookstore, age, file = "myData.RData")
+
+# load(file = "myData.RData")
 ```
 
 
