@@ -1,0 +1,183 @@
+---
+title: "01_basics_dataframes"
+author: "Fran Camacho"
+date: "2025-05-13"
+output: word_document
+---
+
+## 2.10 Data frames and data types
+
+### 1 Types and structures
+
+```{r}
+x <- 6
+y <- "Scotland"
+z <- TRUE
+
+class(x)
+class(y)
+class(z)
+```
+
+Vectors:
+
+```{r}
+numbers <- c(6, 9, 12)
+
+class(numbers)
+```
+
+class returns the data type of the elements of the vector. 
+
+So what happens if we put objects of different types together in a vector?
+
+```{r}
+all_together <- c(x, y, z)
+all_together
+
+class(all_together)
+```
+
+### 2 Types of tables
+
+
+```{r}
+# Bookstore example
+age <- c(28, 48, 47, 71, 22, 80, 48, 30, 31)
+purchase <- c(20, 59, 2, 12, 22, 160, 34, 34, 29)
+bookstore <- data.frame(age, purchase)
+
+str(bookstore)
+bookstore
+```
+
+```{r}
+# Animal sleep data
+library(ggplot2)
+View(msleep)
+```
+
+Here’s the rundown of four common types:
+
+- matrix: a table where all columns must contain objects of the same type (e.g., all numeric or all character). 
+Uses less memory than other types and allows for much faster computations, but it is difficult to use for certain types of data manipulation, plotting and analyses.
+    
+- data.frame: the most common type, where different columns can contain different types 
+(e.g., one numeric column, one character column).
+
+- data.table: an enhanced version of data.frame.
+    
+- tbl_df (“tibble”): another enhanced version of data.frame.
+
+
+
+```{r}
+# First, an example of data stored in a matrix:
+?WorldPhones
+class(WorldPhones)
+View(WorldPhones)
+
+# Next, an example of data stored in a data frame:
+?airquality
+class(airquality)
+View(airquality)
+
+# Finally, an example of data stored in a tibble:
+library(ggplot2)
+?msleep
+class(msleep)
+View(msleep)
+```
+
+ you can convert objects into other types:
+ 
+```{r}
+WorldPhonesDF <- as.data.frame(WorldPhones)
+class(WorldPhonesDF)
+
+airqualityMatrix <- as.matrix(airquality)
+class(airqualityMatrix)
+```
+ 
+
+**Exercise 2.23** 
+
+Matrix tables can be created from vectors using the function of the same name. 
+Using the vector x <- 1:6 use matrix to create the following matrices:
+
+(1 2 3
+ 4 5 6)
+
+```{r}
+x <- 1:6
+
+matrix(x, nrow = 2, ncol = 3, byrow = TRUE)
+```
+
+
+and
+
+(1 4
+ 2 5
+ 3 6)
+ 
+```{r}
+x <- 1:6
+
+matrix(x, nrow = 3, ncol = 2, byrow = FALSE)
+```
+ 
+
+## 2.11 Vectors in data frames
+
+
+```{r}
+airquality_raw <- data.frame(airquality) 
+```
+
+```{r}
+# Extract the Temp vector:
+airquality$Temp
+```
+
+```{r}
+# Compute the mean temperature:
+mean(airquality$Temp)
+```
+
+```{r}
+# First, we check the order of the columns:
+names(airquality)
+# We see that Temp is the 4th column.
+
+airquality[5, 4]    # The 5th element from the 4th column,
+                    # i.e. the same as airquality$Temp[5]
+
+airquality[5,]      # The 5th row of the data
+```
+
+
+```{r}
+airquality[, 4]     # The 4th column of the data, like airquality$Temp
+
+airquality[[4]]     # The 4th column of the data, like airquality$Temp
+```
+
+
+```{r}
+airquality[, c(2, 4, 6)] # The 2nd, 4th and 6th columns of the data
+
+airquality[, -2]    # All columns except the 2nd one
+
+airquality[, c("Temp", "Wind")] # The Temp and Wind columns
+```
+
+
+
+
+
+
+
+
+
+
