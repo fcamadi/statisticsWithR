@@ -1,0 +1,146 @@
+---
+title: "02_cornerstones_of_stadistics"
+author: "Fran Camacho"
+date: "2025-08-06"
+output:
+  html_document:
+    df_print: paged
+---
+
+# 02 - Cornerstones of Stadistics
+
+
+```{r}
+#Libraries
+
+#https://tidyverse.r-universe.dev/tidyverse
+if (!require(tidyverse)) install.packages('tidyverse', repos = c('https://tidyverse.r-universe.dev', 'https://cloud.r-project.org'))
+library(tidyverse)
+
+
+
+
+```
+
+## 3.1 The three cultures
+
+There are three main schools in statistical modelling: 
+the frequentist school, 
+the Bayesian school, and 
+the machine learning school.
+
+
+## 3.2 Frequencies, proportions, and cross-tables
+
+
+```{r}
+library(palmerpenguins)
+?penguins
+```
+
+
+- Frequency tables:
+Frequency tables are used to summarise the distribution of a single variable. 
+
+Without pipes:
+```{r}
+table(penguins$species)
+```
+
+With pipes:
+```{r}
+library(dplyr)
+penguins |> select(species) |> table()
+```
+
+
+- Publication-ready tables
+
+The table in the previous section is fine for data exploration but requires some formatting if you wish to put it in a report. 
+If instead you want something publication-ready that you can put straight into a report or a presentation, 
+I recommend using either the **gtsummary** package or the **ivo.table** package. 
+
+```{r}
+# Install the packages:
+#install.packages(c("gtsummary", "flextable", "ivo.table"))
+
+if (!require(gtsummary)) install.packages('gtsummary', dependencies = T)
+
+if (!require(flextable)) install.packages('flextable', dependencies = T)
+library(flextable)
+if (!require(ivo.table)) install.packages('ivo.table', dependencies = T)
+library(ivo.table)
+```
+
+
+Without pipes:
+```{r}
+library(gtsummary)
+
+tbl_summary(penguins[,"species"])
+```
+
+With pipes:
+```{r}
+library(dplyr)
+library(gtsummary)
+
+penguins |>
+  select(species) |>
+  tbl_summary()
+```
+
+
+The **ivo.table** package and the **ivo_table** function offer a similar table constructed in the same way:
+
+Without pipes:
+```{r}
+library(ivo.table)
+
+ivo_table(penguins[,"species"])
+```
+
+
+With pipes:
+```{r}
+library(dplyr)
+library(ivo.table)
+
+penguins |>
+  select(species) |>
+  ivo_table()
+```
+
+You can modify the settings to change the colours and fonts used, and to show percentages instead of counts:
+```{r}
+penguins |>
+  select(species) |>
+  ivo_table(color = "darkred",
+            font = "Garamond",
+            percent_by = "row")
+```
+
+If you prefer, you can also get the table in a long format that is useful when your variable has many different levels:
+```{r}
+penguins |>
+  select(species) |>
+  ivo_table(long_table = TRUE)
+```
+
+Finally, the table can be exported to Word as follows:
+```{r}
+library(flextable)
+
+penguins |>
+  select(species) |>
+  ivo_table() |> 
+  save_as_docx(path = "my_table.docx")
+```
+
+
+
+- Contingency tables
+
+Contingency tables, also known as cross-tabulations or cross-tables, are used to summarise the relationship between two or more variables.
+
+
