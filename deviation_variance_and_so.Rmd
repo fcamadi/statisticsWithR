@@ -13,9 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ## THE MEAN DEVIATION
 
 
-**Example 5.3.1**. The weights, in grams, of 10 pieces of scrap metal from a metal fab-
-rication process are 2.63, 2.68, 2.57, 2.73, 2.56, 2.62, 2.38, 2.45, 2.35, 2.53. Compute
-the mean deviation about the mean and mean deviation about the median.
+**Example 5.3.1**. The weights, in grams, of 10 pieces of scrap metal from a metal fabrication 
+process are 2.63, 2.68, 2.57, 2.73, 2.56, 2.62, 2.38, 2.45, 2.35, 2.53. Compute the mean deviation 
+about the mean and mean deviation about the median.
 
 ```{r}
 measures <- c(2.63, 2.68, 2.57, 2.73, 2.56, 2.62, 2.38, 2.45, 2.35, 2.53)

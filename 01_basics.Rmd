@@ -382,8 +382,8 @@ plot
 plot(msleep$sleep_total, msleep$sleep_rem)
 
 plot(msleep$sleep_total, msleep$sleep_rem, pch = 16)
-grid()
 
+#grid()
 ```
 ggplot
 
@@ -532,7 +532,7 @@ ggplot(msleep, aes(brainwt, sleep_total, colour = vore)) +
 ```
 
 The numbers on the x-axis are displayed with scientific notation. 
-You can change the settings in R to use decimals, instead, using the options function as follows:
+You can change the settings in R to use decimals, instead, using the **options** function as follows:
 
 ```{r}
 

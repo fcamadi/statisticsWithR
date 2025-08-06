@@ -5,6 +5,9 @@ date: "2025-05-13"
 output: word_document
 ---
 
+# 2. The basics
+
+
 ## 2.10 Data frames and data types
 
 ### 1 Types and structures
@@ -240,7 +243,7 @@ The following tasks all involve checking conditions for the airquality data:
 i) Which was the coldest day during the period?
 
 ```{r}
-#which.min(airquality$Temp)
+#which.min(airquality$Temp)  #<- index only
 airquality[which.min(airquality$Temp),]
 ```
 
@@ -275,6 +278,7 @@ The **aggregate** function can be used to create that kind of grouped summary.
 ```{r}
 aggregate(Temp ~ Month, data = airquality, FUN = mean)
 ```
+
  
 ```{r}
 aggregate(Ozone ~ Month, data = airquality, FUN = mean)
@@ -303,7 +307,7 @@ The results are the same, but the output is not as nicely formatted.
 by(airquality$Temp, airquality$Month, mean)
 ```
 
-What makes by useful is that unlike aggregate it is easy to use with functions that take more than one variable as input. 
+What makes **by** useful is that unlike aggregate it is easy to use with functions that take more than one variable as input. 
 If we want to compute the correlation between Wind and Temp grouped by month
 
 ```{r}
@@ -324,6 +328,16 @@ It contains the dataset datasaurus_dozen. Check its structure and then do the fo
 install.packages("datasauRus")
 library(datasauRus)
 ```
+
+```{r}
+dasauRus <- data.frame(datasaurus_dozen)
+```
+
+```{r}
+table(dasauRus$dataset)
+```
+
+
 
 i) Compute the mean of x, mean of y, standard deviation of x, standard deviation of y, and correlation between x and y,
 grouped by dataset. Are there any differences between the 12 datasets?
@@ -383,7 +397,7 @@ and have R implicitly understand that all the variables involved reside in that 
 
 
 ```{r}
-install.packages("dplyr")
+if (!require(dplyr)) install.packages('dplyr', dependencies = T)
 library(dplyr)
 ```
 
@@ -429,7 +443,6 @@ Three operations are required to solve the airquality wind speed problem:
 
 
 ```{r}
-
 airquality |>
       filter(Temp > 80) |>                         # Extract hot days
       mutate(Wind = Wind * 0.44704) |>             # Convert wind speed to m/s
@@ -439,6 +452,20 @@ airquality |>
 
 hot_wind_means
 ```
+
+
+```{r}
+# The same using <-
+hot_wind_means <- airquality |>
+                  filter(Temp > 80) |>                     # Extract hot days
+                  mutate(Wind = Wind * 0.44704) |>         # Convert wind speed to m/s
+                  group_by(Month) |> 
+                  summarise(Mean_wind_speed = mean(Wind))  # Compute mean wind speed for each month
+      
+hot_wind_means
+```
+
+
 
 **Exercise 2.29**
 
@@ -456,7 +483,8 @@ bookstore <- data.frame(age, purchase, visit_length)
 Add a new variable rev_per_minute which is the ratio between purchase and the visit length, using a pipe and a function from dplyr.
 
 ```{r}
-bookstore <- bookstore |> mutate(rev_per_minute = purchase/visit_length) 
+bookstore <- bookstore |> 
+            mutate(rev_per_minute = purchase/visit_length) 
 
 bookstore
 ```
@@ -468,7 +496,7 @@ A pipe sends the output from the left-hand side to the first argument of the rig
 This won’t work if the first argument of the right-hand function doesn’t agree with the output from the left-hand function:
 
 ```{r}
-install.packages("ggplot2")  # to load dataset msleep
+if (!require(ggplot2)) install.packages('ggplot2', dependencies = T) # to load dataset msleep
 library(ggplot2)
 
 msleep <- data.frame(msleep)
@@ -490,6 +518,17 @@ This (**with**) takes the data frame from the left-hand side as input and then a
 ```{r}
 msleep |> with(cor(sleep_total, sleep_rem, use = "complete.obs"))
 ```
+
+```{r}
+# No need to use with and |> for this:
+
+# Calculate the correlation between sleep_total and sleep_rem
+correlation <- cor(msleep$sleep_total, msleep$sleep_rem, use = "complete.obs")
+
+# Print the correlation
+print(correlation)
+```
+
 
 
 There are some other functions that have an argument for passing a data frame, but not as their first argument. 

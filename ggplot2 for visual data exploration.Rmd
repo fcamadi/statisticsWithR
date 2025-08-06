@@ -5,9 +5,6 @@ date: "2025-04-15"
 output: word_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 ## Using ggplot2 for visual data exploration
 
