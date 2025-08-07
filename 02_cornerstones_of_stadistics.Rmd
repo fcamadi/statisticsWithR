@@ -17,7 +17,15 @@ output:
 if (!require(tidyverse)) install.packages('tidyverse', repos = c('https://tidyverse.r-universe.dev', 'https://cloud.r-project.org'))
 library(tidyverse)
 
+# Install the packages:
+#install.packages(c("gtsummary", "flextable", "ivo.table"))
 
+if (!require(gtsummary)) install.packages('gtsummary', dependencies = T)
+library(gtsummary)
+if (!require(flextable)) install.packages('flextable', dependencies = T)
+library(flextable)
+if (!require(ivo.table)) install.packages('ivo.table', dependencies = T)
+library(ivo.table)
 
 
 ```
@@ -139,8 +147,115 @@ penguins |>
 
 
 
-- Contingency tables
+- **Contingency tables**
 
-Contingency tables, also known as cross-tabulations or cross-tables, are used to summarise the relationship between two or more variables.
+Contingency tables, also known as **cross-tabulations** or **cross-tables**, are used to summarise the relationship between two or more variables.
+They consist of a table with rows and columns that represent the different values of the variables, and the entries in the table show the number or proportion of times each combination of values occurs in the data. For example, a contingency table for the variables species and island in the penguins data shows the number of individuals of different species at different islands.
+
+
+Without pipes:
+```{r}
+ftable(penguins$island, penguins$species)
+```
+
+With pipes:
+```{r}
+penguins |> select(island, species) |> ftable()
+```
+
+Again, we can create a nicely formatted publication-ready table. With ivo_table, we follow the same logic as before:
+```{r}
+library(ivo.table)
+
+penguins |> select(species, island) |>
+            ivo_table()
+```
+
+To create a contingency table using tbl_summary, we use the following syntax:
+
+Without pipes:
+```{r}
+library(gtsummary)
+
+tbl_summary(penguins[,c("species","island")], by = species)
+#tbl_summary(penguins[,c("species","island")], by = island)
+```
+
+
+With pipes:
+```{r}
+library(dplyr)
+library(gtsummary)
+
+penguins |> select(species, island) |> tbl_summary(by=species)
+```
+
+
+Contingency tables are great for presenting data, and in many cases we can draw conclusions directly from looking at such a table. 
+For instance, in the example above, it is clear that Adelie penguins are the only species present at all three islands 
+(or at least, the only species sampled at all three islands). In other cases, the results aren’t as clear-cut. 
+That’s when statistical hypothesis testing becomes useful ...
+
+
+- Three-way and four-way tables
+
+Three-way and four-way tables are contingency tables showing the distribution of three and four variables, respectively. 
+They are straightforward to create using ftable or ivo_table.
+
+We simply select the variables we wish to include in the table, and use ftable or ivo_table as in previous examples.
+Here are some examples using ivo_table:
+
+
+```{r}
+# A three-way table:
+library(ivo.table)
+
+penguins |> select(sex, species, island) |>
+            ivo_table()
+```
+
+
+```{r}
+# Exclude missing values:
+penguins |> select(sex, species, island) |>
+            ivo_table(exclude_missing = TRUE)
+```
+
+```{r}
+# A four-way table:
+penguins |> select(sex, species, island, year) |>
+            ivo_table()
+```
+
+
+You can’t use gtsummary to construct three-way and four-way tables, but you can use it for a similar type of table, presenting several variables at once, stratified by another variable. For instance, we can show the frequencies of islands and sexes stratified by species, as in the example below. This type of table, showing the distributions of different categorical variables, is often referred to as **Table 1** in scientific papers.
+
+Without pipes:
+```{r}
+library(gtsummary)
+
+tbl_summary(penguins[,c("species","sex","island")], by = species)
+```
+
+
+With pipes:
+```{r}
+library(dplyr)
+library(gtsummary)
+
+penguins |>
+  select(species, sex, island) |>
+  tbl_summary(by = species)
+```
+
+
+
+
+
+
+
+
+
+
 
 
