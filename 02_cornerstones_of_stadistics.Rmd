@@ -250,9 +250,363 @@ penguins |>
 
 
 
+## 3.3 Hypothesis testing and p-values
+
+https://modernstatisticswithr.com/basicstatistics.html#hypotheses
+
+
+**Statistical hypothesis testing** is used to determine which of two complementary hypotheses is true. 
+In statistics, a hypothesis is a statement about a parameter in a population, such as the population mean value. 
+The two hypotheses in a hypothesis testing problem are:
+
+- The null hypothesis H0
+corresponding to “no effect”, “no difference”, or “no relationship”.
+
+- The alternative hypothesis H1
+corresponding to “there is an effect”, “there is a difference”, or “there is a relationship”.
+
+example: Comparing two groups. 
+
+To find out whether flipper length differs between male and female Chinstrap penguins, we measure the flipper lengths 
+of a number of penguins. If the average length in the female population is μ1 and the average length in the male 
+population is μ2, then the population parameter that we are interested in is the difference μ1−μ2
+The hypotheses are:
+
+H0 : there is no difference; μ1−μ2=0
+H1 : there is a difference; μ1−μ2≠0.
+
+The purpose of hypothesis testing is to determine which of the two hypotheses to believe in.
+Hypothesis testing is often compared to legal trials: the null hypothesis is considered to be “innocent until proven guilty”, 
+meaning that we won’t reject it unless there is compelling evidence against it. 
+We can therefore think of the null hypothesis as a sort of default – we’ll believe in it until 
+we have enough evidence to say with some confidence that it in fact isn’t true.
+
+
+**- The lady tasting tea**
+
+...
+
+The hypotheses that this experiment was designed to test are:
+
+H0: the lady’s guesses are no better than chance.
+H1: the lady’s guesses are better than chance.
+
+The results of the experiment can be presented in a 2×2 contingency table. 
+For instance, one possible outcome is that the lady gets both sets of four right, which yields the following table:
+
+	                 Truth: milk first 	Truth: tea first
+Guess: milk first     	4 	               0
+Guess: tea first 	      0 	               4 
+
+The design of this experiment is such that all row sums and column sums are 4. 
+Consequently, if we know the count in the upper left cell we also know the counts in the other cells.
+This means that there are 5 possible tables that can result (the count in the upper left cell can be 4, 3, 2, 1, or 0). 
+We can compute the probability of obtaining each table under the null hypothesis21, with the following results:
+
+- The count is 4 (4 cups with milk poured first right), with probability 1/70,
+- The count is 3 (3 cups with milk poured first right and 1 wrong), with probability 16/70,
+- The count is 2 (2 cups with milk poured first right and 2 wrong), with probability 36/70,
+- The count is 1 (1 cup with milk poured first right and 3 wrong), with probability 16/70,
+- The count is 0 (4 cups with milk poured first wrong), with probability 1/70.
+
+...
+
+Getting 3 cups where the milk poured first right is the second most extreme outcome. 
+If H0 is true, this occurs in 16 experiments out of 70. In addition, a more extreme outcome (4 cups right) occurs in 1 experiment out of 70. 
+The probability of getting a result that is at least as extreme as this is therefore 16/70+1/70=17/70, and the p-value given this outcome is 17/70 ≈ 0.24.
+
+...
+
+**- How low does the p-value have to be?**
+https://modernstatisticswithr.com/basicstatistics.html#how-low-does-the-p-value-have-to-be
+
+We need some way of determining a cut-off for p-values. Let’s call this cut-off α, the significance level of our test. 
+It can be any number between 0 and 1. Once we’ve decided on a value for α, we are ready to make a decision regarding which hypothesis to believe in. 
+If the p-value is less than α, we reject H0 in favour of H1 and say the result is statistically significant. 
+If the p-value is greater than α, we conclude that there isn’t sufficient evidence against H0, so we’ll believe in it for the time being.
+
+How then shall we choose α? There are two types of errors that we can make in hypothesis testing:
+
+- A type I error: falsely rejecting H0 even though H0 is true (a false positive result).
+- A type II error: not rejecting H0 even though H1 is true (a false negative result).
+
+Both of these will depend on what significance level we choose for our p-value. 
+If we choose a low α, we require more evidence before we reject H0. 
+This lowers the risk of a type I error but increases the risk of a type II error. 
+
+The probability of making a type I error is the easiest to control and often also considered to be the most important of the two.
+
+...
+
+In the real world, there are two types of tests:
+
+- Exact tests, for which the probability of committing a type I error is less than or equal to α
+- Approximate tests, for which the probability of committing a type II error is approximately equal to α
+(but may be greater than α, perhaps substantially so). How close it is to α depends on a number of factors.
+(We’ll discuss these for different tests later in this chapter).
+
+
+**- Fisher’s exact test**
+
+https://modernstatisticswithr.com/basicstatistics.html#fishers-exact-test
+
+
+To use Fisher’s exact test, we first need some data. 
+
+The contingency table describing the outcome of the experiment can be constructed in different ways in R, depending on whether our data is stored in a long data frame or already available in tabulated form. If it is stored in a data frame, where each row shows the outcome of a repetition, we can get a contingency table as follows:
+
+```{r}
+# Compute the contingency table from a data frame:
+lady_data <- data.frame(Guess = c("Milk first", "Milk first",
+                                  "Tea first", "Tea first",
+                                  "Milk first", "Tea first",
+                                  "Tea first", "Milk first"),
+                        Truth = c("Milk first", "Milk first",
+                                  "Tea first", "Tea first",
+                                  "Milk first", "Tea first",
+                                  "Tea first", "Milk first"))
+
+lady_data |> ftable() -> lady_results1
+
+lady_results1
+```
+
+If instead the data already is stored as counts, we can create a contingency table by hand by creating a matrix containing the counts:
+
+```{r}
+# Input the contingency table directly, if we only have the counts:
+lady_results2 <- matrix(c(4, 0, 0, 4),
+                       ncol = 2, nrow = 2,
+                       byrow = TRUE,
+                       dimnames = list(c("Guess: milk first", "Guess: tea first"),
+                                       c("Truth: milk first", "Truth: tea first")))
+lady_results2
+```
+
+
+To perform Fisher’s exact test, for the lady tasting tea data, we use **fisher.test** as follows.
 
 
 
+```{r}
+
+print("The output contains the p-value (0.01429), and some additional information:")
+  
+fisher.test(lady_results1, alternative = "greater")
+fisher.test(lady_results2, alternative = "greater")
+
+
+```
+
+**- One- and two-sided hypotheses**
+
+What is that mysterious last argument in fisher.test, alternative = "greater"? Well, there are three different sets of hypotheses that we may want to test:
+
+1) Whether the lady guesses better than random. Here H0: the lady’s guesses are no better than chance, 
+                                                 and H1: the lady’s guesses are better than chance.
+2) Whether the lady guesses worse than random. Here H0: the lady’s guesses are no worse than chance, 
+                                                and H1: the lady’s guesses are worse than chance.
+3) Whether the lady’s guesses are either better than or worse than random. Here H0: the lady’s guesses are equally good as chance, 
+                                                                            and H1: the lady’s guesses are either worse than or better than chance.
+
+The first two are said to be one-sided or directed, as they specify a direction in which the lady’s ability deviates from chance. The last set of hypotheses is said to be two-sided, because the lady’s abilities can deviate from chance in either direction. Because the alternative hypotheses are different, the three sets of hypotheses will yield different p-values (which is unsurprising, as we are asking different questions depending on how we specify our hypotheses).
+
+
+```{r}
+fisher.test(lady_results2, alternative = "greater") # 1
+fisher.test(lady_results2, alternative = "less") # 2
+fisher.test(lady_results2, alternative = "two.sided") # 3
+```
+
+
+**- The lady binging tea: power and how the sample size affects the analysis**
+
+Fisher’s exact test can be used to illustrate an important principle: the greater the sample size,
+the easier it is to detect if H1 is true.
+
+
+...
+
+
+
+
+
+## 3.4 χ2-tests
+
+When analysing a contingency table containing two variables X and Y, there are two common types of tests. 
+
+The first is a **test of independence*, where we test whether the two variables are independent:
+
+H0: the variables are independent; P(X=x and Y=y)=P(X=x)P(Y=y) for all x,y
+H1: the variables are dependent; there is at least one pair x,y such that P(X=x and Y=y)≠P(X=x)P(Y=y).
+
+The second is a **test of homogeneity**, where we test whether the distribution of Y is the same regardless of the value of X, 
+which in this case represents different populations:
+
+H0: the variables are independent; P(Y=y|X=x)=P(Y=y) for all x,y
+H1: the variables are dependent; there is at least one pair x,y such that P(Y=y|X=x)≠P(Y=y).
+
+
+Mathematically, a test of homogeneity is equivalent to a test of independence. 
+
+The difference between the two lies in how the data is sampled. When we plan to perform a test of independence,
+we sample a single population and then break the observations down into the categories in the contingency table based on their X and Y values. 
+
+When we plan to perform a test of homogeneity we instead sample several populations, 
+corresponding to the levels of X, and measure the value of Y.
+
+Finally, in some cases, we have a frequency table showing the distribution of a single variable. 
+We may want to **test whether this variable follows some specific distribution, F**, say. 
+We then do a goodness-of-fit test of the hypotheses:
+
+H0: the variable follows the distribution F
+H1: the variable does not follow the distribution F.
+
+All three of these can be tested using a χ2-test (chi-squared test).
+
+
+...
+
+
+
+
+
+
+## 3.5 Confidence intervals
+
+As a first example, let’s consider confidence intervals for a proportion. We’ll use a function from the MKinfer package. Let’s install it:
+
+```{r}
+if (!require(MKinfer)) install.packages('MKinfer', dependencies = T)
+library(MKinfer)
+```
+
+
+The **binomCI** function in this package allows us to compute confidence intervals for proportions from binomial experiments using a number of methods. 
+The input is the number of “successes” **x**, the sample size **n**, and the **method** to be used.
+
+Let’s say that we want to compute a confidence interval for the proportion of herbivore mammals that sleep for more than 7 hours a day.
+First, we need to compute x and n.
+
+No pipes:
+```{r}
+herbivores <- msleep[msleep$vore == "herbi",]
+
+# Compute the number of animals for which we know the sleep time:
+n <- sum(!is.na(herbivores$sleep_total))
+cat("Number of herbivores (n):", n, "\n")
+
+# Compute the number of "successes", i.e. the number of animals that sleep
+# for more than 7 hours:
+x <- sum(herbivores$sleep_total > 7, na.rm = TRUE)
+cat("Number of animals that sleep for more than 7 hours (x):", x, "\n")
+```
+
+Pipes:
+```{r}
+msleep |> 
+  filter(vore == "herbi") |> 
+  select(sleep_total) |> 
+  na.omit() |> 
+  summarise(n = n(),
+            x = sum(sleep_total > 7)) -> res
+            
+n <- res$n
+x <- res$x
+
+cat("Number of herbivores (n):", n, "\n")
+cat("Number of animals that sleep for more than 7 hours (x):", x, "\n")
+```
+
+The estimated proportion is x/n, which in this case is 0.625. We’d like to quantify the uncertainty in this estimate 
+by computing a confidence interval. The standard Wald method, taught in most introductory statistics courses, 
+can be computed in the following way:
+
+```{r}
+library(MKinfer)
+
+binomCI(x, n, conf.level = 0.95, method = "wald")
+```
+
+The confidence interval is printed on the line starting with prob: in this case, it is (0.457,0.792).
+
+Don’t use that method though! The Wald interval is known to be severely flawed (Brown et al., 2001), 
+primarily because its coverage can be very far from 1−α. Much better options are available. 
+If the proportion can be expected to be close to 0 or 1, the Clopper-Pearson interval is recommended,
+and otherwise the Wilson interval is the best choice (Thulin, 2014a).
+
+We can use either of these methods with binomCI:
+
+```{r}
+binomCI(x, n, conf.level = 0.95, method = "clopper-pearson")
+```
+
+
+```{r}
+binomCI(x, n, conf.level = 0.95, method = "wilson")
+```
+
+
+**Exercise 3.2 **
+
+In a survey, 440 out of 998 randomly sampled respondents said that they plan to vote for a particular candidate in an upcoming election. 
+Based on this, compute a 99% Wilson interval for the proportion of voters that plan to vote for this candidate.
+
+```{r}
+n <- 998 
+x <- 440
+
+binomCI(x, n, conf.level = 0.99, method = "wilson")
+```
+
+Solution: (0.400922, 0.4816224)
+
+**Exercise 3.3**
+
+The function binomDiffCI from MKinfer can be used to compute a confidence interval for the difference of two proportions. 
+Using the msleep data, use it to compute a confidence interval for the difference between the proportion of herbivores 
+that sleep for more than 7 hours a day and the proportion of carnivores that sleep for more than 7 hours a day.
+
+
+```{r}
+carnivores <- msleep[msleep$vore == "carni",]
+
+# Compute the number of animals for which we know the sleep time:
+m <- sum(!is.na(carnivores$sleep_total))
+cat("Number of carnivores (n):", m, "\n")
+
+# Compute the number of "successes", i.e. the number of animals that sleep
+# for more than 7 hours:
+y <- sum(carnivores$sleep_total > 7, na.rm = TRUE)
+cat("Number of animals that sleep for more than 7 hours (x):", y, "\n")
+```
+
+conf. interval:
+
+```{r}
+binomDiffCI(x, y, n-x, m-y, level = 0.99, method = "wilson")
+```
+
+
+**- Sample size calculations**
+
+...
+
+
+```{r}
+if (!require(MKpower)) install.packages("MKpower", dependencies = T)
+library(MKpower)
+```
+**Exercise 3.4*
+What sample size is required to obtain a 95% Wilson confidence interval with expected width 0.05 if the true proportion is 0.7?
+
+Solution: (library cannot be loaded)
+
+```{r}
+library(MKpower)
+ssize.propCI(prop = 0.7, width = 0.05,  conf.level = 0.95, method = "wilson")
+```
+The required sample size is n=1296 (the output says 1295.303, which we round up to 1296).
 
 
 
