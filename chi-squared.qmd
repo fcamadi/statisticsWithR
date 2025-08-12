@@ -84,9 +84,17 @@ chi-sq test:
 chisq.test(contingency_table_genre_brands)
 ```
 
-Since the p-value (0.2008) is greater than the common significance level of 0.05, you fail to reject the null hypothesis. This means there is not enough evidence to suggest a significant association between gender and brand preference.
+The p-value (0.2008) is greater than the common significance level of 0.05, so we fail to reject the null hypothesis. There is not enough evidence to suggest a significant association between gender and brand preference.
 
-Other example:
+What about the criteria for running the test? We can check the expected counts:
+
+```{r}
+chisq.test(contingency_table_genre_brands)$expected
+```
+
+There is no cell \<5, so it is ok to perform the chi-squared test.
+
+Same example modified:
 
 ```{r}
 # Input the contingency table directly, if we only have the counts:
