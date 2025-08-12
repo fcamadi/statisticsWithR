@@ -1,0 +1,107 @@
+---
+title: "chi-squared"
+format: docx
+editor: visual
+---
+
+\[duck.ai - Mistral : "in statistic, meaning of the chi squared test"\]
+
+The chi-squared test is a statistical test used to determine whether there is a significant association between two categorical variables. It is commonly used in various fields, including biology, social sciences, and market research, to analyze categorical data. Here are the key concepts and meanings associated with the chi-squared test:
+
+## Purpose
+
+The chi-squared test is used to:
+
+1.  **Test for Independence**: Determine if there is a significant association between two categorical variables.
+2.  **Test for Goodness of Fit**: Compare the observed frequencies in each category to the frequencies expected under a specific hypothesis.
+
+## Types of Chi-Squared Tests
+
+1.  **Chi-Squared Test for Independence**:
+    -   **Null Hypothesis (H0)**: The two categorical variables are independent (i.e., there is no association between them).
+    -   **Alternative Hypothesis (H1)**: The two categorical variables are not independent (i.e., there is an association between them).
+2.  **Chi-Squared Test for Goodness of Fit**:
+    -   **Null Hypothesis (H0)**: The observed frequencies match the expected frequencies.
+    -   **Alternative Hypothesis (H1)**: The observed frequencies do not match the expected frequencies.
+
+## How It Works
+
+1.  **Contingency Table**: For the test of independence, data is typically organized in a contingency table, which shows the frequency distribution of variables.
+2.  **Expected Frequencies**: Calculate the expected frequencies for each cell in the contingency table under the assumption that the null hypothesis is true.
+3.  **Chi-Squared Statistic**: Compute the chi-squared statistic, which measures the difference between the observed and expected frequencies.
+4.  **p-value**: Determine the p-value associated with the chi-squared statistic to assess the significance of the result.
+
+## Formula
+
+![](images/clipboard-1815652510.png)
+
+## Interpretation
+
+### Chi-Squared Statistic
+
+The chi-squared statistic (often denoted as χ2) quantifies the difference between the observed frequencies and the expected frequencies under the null hypothesis. A larger chi-squared value indicates a greater discrepancy between the observed and expected frequencies.
+
+### p-value
+
+The p-value is the probability of observing a chi-squared statistic as extreme as, or more extreme than, the one computed from the sample data, assuming that the null hypothesis is true. A small p-value (typically ≤ 0.05) indicates strong evidence against the null hypothesis, suggesting that the observed association is statistically significant.
+
+## Example
+
+Suppose you want to test if there is an association between gender and preference for a particular brand. We collect data and create a contingency table:
+
+|        | Brand A | Brand B | Total |
+|--------|---------|---------|-------|
+| Male   | 40      | 60      | 100   |
+| Female | 50      | 50      | 100   |
+| Total  | 90      | 110     | 200   |
+
+You can perform a chi-squared test for independence to determine if there is a significant association between gender and brand preference.
+
+### Assumptions
+
+-   **Independence**: Observations are independent of each other.
+-   **Sample Size**: Expected frequencies should be sufficiently large (typically at least 5) in each cell of the contingency table.
+
+### Conclusion
+
+The chi-squared test is a powerful tool for analyzing categorical data and determining the significance of associations between variables. It provides a straightforward way to test hypotheses and make data-driven decisions.
+
+### Example resolved:
+
+```{r}
+# Input the contingency table directly, if we only have the counts:
+contingency_table_genre_brands <- matrix(c(60, 40, 50, 50),
+                       ncol = 2, nrow = 2,
+                       byrow = TRUE,
+                       dimnames = list(c("Male", "Female"),
+                                       c("Brand A", "Brand B")))
+contingency_table_genre_brands
+```
+
+chi-sq test:
+
+```{r}
+chisq.test(contingency_table_genre_brands)
+```
+
+Since the p-value (0.2008) is greater than the common significance level of 0.05, you fail to reject the null hypothesis. This means there is not enough evidence to suggest a significant association between gender and brand preference.
+
+Other example:
+
+```{r}
+# Input the contingency table directly, if we only have the counts:
+contingency_table_genre_brands_2 <- matrix(c(70, 30, 40, 60),
+                       ncol = 2, nrow = 2,
+                       byrow = TRUE,
+                       dimnames = list(c("Male", "Female"),
+                                       c("Brand A", "Brand B")))
+contingency_table_genre_brands_2
+```
+
+chi-sq test:
+
+```{r}
+chisq.test(contingency_table_genre_brands_2)
+```
+
+Now the value of chi squared is quite high, and the p-value is much smaller than 0.05, so we can reject the null hypothesis. Now there is a significant association between gender and brand preference.
