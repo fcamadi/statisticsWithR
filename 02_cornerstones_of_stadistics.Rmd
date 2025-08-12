@@ -3,8 +3,10 @@ title: "02_cornerstones_of_stadistics"
 author: "Fran Camacho"
 date: "2025-08-06"
 output:
+  word_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 # 02 - Cornerstones of Stadistics
@@ -147,7 +149,7 @@ penguins |>
 
 
 
-- **Contingency tables**
+### Contingency tables
 
 Contingency tables, also known as **cross-tabulations** or **cross-tables**, are used to summarise the relationship between two or more variables.
 They consist of a table with rows and columns that represent the different values of the variables, and the entries in the table show the number or proportion of times each combination of values occurs in the data. For example, a contingency table for the variables species and island in the penguins data shows the number of individuals of different species at different islands.
@@ -259,10 +261,10 @@ https://modernstatisticswithr.com/basicstatistics.html#hypotheses
 In statistics, a hypothesis is a statement about a parameter in a population, such as the population mean value. 
 The two hypotheses in a hypothesis testing problem are:
 
-- The null hypothesis H0
+- The **null hypothesis H0**
 corresponding to “no effect”, “no difference”, or “no relationship”.
 
-- The alternative hypothesis H1
+- The **alternative hypothesis H1**
 corresponding to “there is an effect”, “there is a difference”, or “there is a relationship”.
 
 example: Comparing two groups. 
@@ -282,7 +284,7 @@ We can therefore think of the null hypothesis as a sort of default – we’ll b
 we have enough evidence to say with some confidence that it in fact isn’t true.
 
 
-**- The lady tasting tea**
+### The lady tasting tea
 
 ...
 
@@ -317,7 +319,8 @@ The probability of getting a result that is at least as extreme as this is there
 
 ...
 
-**- How low does the p-value have to be?**
+### How low does the p-value have to be?
+
 https://modernstatisticswithr.com/basicstatistics.html#how-low-does-the-p-value-have-to-be
 
 We need some way of determining a cut-off for p-values. Let’s call this cut-off α, the significance level of our test. 
@@ -346,7 +349,7 @@ In the real world, there are two types of tests:
 (We’ll discuss these for different tests later in this chapter).
 
 
-**- Fisher’s exact test**
+### Fisher’s exact test
 
 https://modernstatisticswithr.com/basicstatistics.html#fishers-exact-test
 
@@ -398,7 +401,7 @@ fisher.test(lady_results2, alternative = "greater")
 
 ```
 
-**- One- and two-sided hypotheses**
+### One- and two-sided hypotheses
 
 What is that mysterious last argument in fisher.test, alternative = "greater"? Well, there are three different sets of hypotheses that we may want to test:
 
@@ -419,7 +422,7 @@ fisher.test(lady_results2, alternative = "two.sided") # 3
 ```
 
 
-**- The lady binging tea: power and how the sample size affects the analysis**
+### The lady binging tea: power and how the sample size affects the analysis
 
 Fisher’s exact test can be used to illustrate an important principle: the greater the sample size,
 the easier it is to detect if H1 is true.
@@ -435,7 +438,7 @@ the easier it is to detect if H1 is true.
 
 When analysing a contingency table containing two variables X and Y, there are two common types of tests. 
 
-The first is a **test of independence*, where we test whether the two variables are independent:
+The first is a **test of independence**, where we test whether the two variables are independent:
 
 H0: the variables are independent; P(X=x and Y=y)=P(X=x)P(Y=y) for all x,y
 H1: the variables are dependent; there is at least one pair x,y such that P(X=x and Y=y)≠P(X=x)P(Y=y).
@@ -533,7 +536,13 @@ x2res$expected
 
 The chisq.test output will also give a warning if any cells have eij<5.
 
-If your sample size is too small to use a χ2 tests, there are two options in addition to gathering more data. The first is to merge some cells by merging levels of one or more of your categorical variables; see Section 5.4 for more on how this can be done. The second is to use simulated p-values, i.e., to use simulation rather than a mathematical approximation to compute the p-value. This turns the test into an approximate permutation test: the X2 statistic is computed for a large number of randomly selected permutations of the table, and the p-value is then computed as the proportion of permutations for which X2 was at least as large as for the original table. 
+If your sample size is too small to use a χ2 tests, there are two options in addition to gathering more data. 
+The first is to merge some cells by merging levels of one or more of your categorical variables; 
+see Section 5.4 for more on how this can be done. 
+The second is to use simulated p-values, i.e., to use simulation rather than a mathematical approximation to compute the p-value. 
+This turns the test into an approximate permutation test: the X2 statistic is computed for a large number of randomly selected 
+permutations of the table, and the p-value is then computed as the proportion of permutations for which X2 was at least 
+as large as for the original table. 
 
 To use this approach, we add the argument **simulate.p.value = TRUE** to chisq.test. The argument **B** can also be added, 
 to control how many permutations should be simulated; B = 9999 is a reasonable default choice.
@@ -721,7 +730,7 @@ binomDiffCI(x, y, n-x, m-y, level = 0.99, method = "wilson")
 ```
 
 
-**- Sample size calculations**
+### Sample size calculations
 
 Confidence intervals that are too wide aren’t that informative. We’d much rather be able to say “the proportion is somewhere
 between 0.56 and 0.58” than “the proportion is somewhere between 0.37 and 0.78”.
@@ -762,6 +771,80 @@ ssize.propCI(prop = 0.7, width = 0.05,  conf.level = 0.95, method = "wilson")
 The required sample size is n=1296 (the output says 1295.303, which we round up to 1296).
 
 
+## 3.6 Comparing mean values
+
+In Section 3.3 we imagined a study where we wanted to find out whether flipper length differs between male and female Chinstrap penguins. 
+The penguins dataset can be used for this purpose. It contains measurements of the flipper lengths of a number of penguins. 
+If the average length in the female population is μ1 and the average length in the male population is μ2, then the population parameter 
+that we are interested in is the difference μ1−μ2
+
+- The hypotheses that we wish to test are:
+
+H0: there is no difference; μ1−μ2=0
+H1: there is a difference; μ1−μ2≠0
+
+In this section, we will learn about the t-test, which can be used to test this and similar hypotheses about means and differences of means. 
+Throughout the section, we’ll assume that all observations are independent, unless we explicitly say that they aren’t.
+
+
+### The t-test for comparing two groups
+
+It seems reasonable to base a test of these hypotheses on the difference between the sample means in the two samples: x¯1−x¯2
+
+There is one problem though: said difference is not scale invariant, and so we would get different results depending on whether we measure the flipper lengths in centimetres, metres, or inches. To remedy that, we base our test on the quantity
+
+T = x¯1−x¯2 / s
+
+where s is the standard error of x¯1−x¯2 (i.e., an estimate of the standard deviation of the mean difference). 
+How the latter is computed depends on what assumptions we are willing to make. 
+The test based on T is called the two-sample t-test. There are two different versions of this test, which differ in how s is computed:
+
+- The equal-variances t-test: where the variance is assumed to be the same in both populations.
+- The Welch t-test: where the variance is allowed to differ between the two populations.
+
+The equal-variances t-test will not work properly when the two populations have differing variances
+...
+The Welch t-test works well both when the population variances differ and when they are equal, and it tests the right hypotheses in both cases. 
+It is the default in R, ...
+
+In summary, forget about different versions of the two-sample t-test, and **always use the Welch t-test**. 
+As it is the default in R, this is easy to do!
+
+no pipes:
+```{r}
+library(palmerpenguins)
+
+t.test(flipper_length_mm ~ sex, data = subset(penguins, species == "Chinstrap"))
+```
+
+pipes:
+```{r}
+library(palmerpenguins)
+
+penguins |>
+  filter(species == "Chinstrap") |> 
+  t.test(flipper_length_mm ~ sex, data = _)  # data = _ means that the data used is the output from the previous step in the pipeline 
+```
+
+We are mostly interested in the p-value, which in this case is very low, leading us to reject H0 and conclude that there is a difference.
+
+In addition to the p-value, a 95% confidence interval for the difference μ1−μ2 is also presented 
+(remember that there is a close connection between confidence intervals and hypothesis test), along with the means in the two groups.
+
+The confidence interval is (−11.0,−5.3), meaning that the average flipper length in females is somewhere between 5.3 and 11.0 mm shorter than in males.
+
+
+**Exercise 3.5**
+Consider the penguins data again. Run a t-test to see if the average body mass differs between the sexes for Chinstrap penguins.
+
+```{r}
+penguins |>
+  filter(species == "Chinstrap") |> 
+  t.test(body_mass_g ~ sex, data = _) 
+```
+
+P-value is very small, so we reject H0 that there is no difference in average weight.
+The confidence interval (-569.7903 -253.7391) says that on average female Chinstrap penguins weight between 253 and 560 g less than male ones.
 
 
 
