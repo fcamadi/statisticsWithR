@@ -590,24 +590,43 @@ binomDiffCI(x, y, n-x, m-y, level = 0.99, method = "wilson")
 
 **- Sample size calculations**
 
-...
+Confidence intervals that are too wide aren’t that informative. We’d much rather be able to say “the proportion is somewhere
+between 0.56 and 0.58” than “the proportion is somewhere between 0.37 and 0.78”.
 
+How wide a confidence interval for a proportion is depends both on the number of successes x and the sample size n.
+We don’t know x in advance but can usually control n, at least to some extent. It is therefore often useful to perform
+some computations prior to collecting our data, to make sure that n is large enough that we’ll get a confidence interval 
+with a reasonable width.
+
+The MKpower package contains several functions that will prove useful when we wish to calculate what sample size we need for a study.
 
 ```{r}
+# Library libfftw3-dev (needed for Fast Fourier Transforms) is a dependency of qqconf
+# To install it:
+#
+# sudo apt-get update
+# sudo apt-get install libfftw3-dev
+#  
+
+if (!require(qqconf)) install.packages("qqconf", dependencies = T)
+library(qqconf)
+if (!require(qqplotr)) install.packages("qqplotr", dependencies = T)
+library(qqplotr)
+
 if (!require(MKpower)) install.packages("MKpower", dependencies = T)
 library(MKpower)
 ```
+
 **Exercise 3.4*
 What sample size is required to obtain a 95% Wilson confidence interval with expected width 0.05 if the true proportion is 0.7?
 
 Solution: (library cannot be loaded)
 
 ```{r}
-library(MKpower)
 ssize.propCI(prop = 0.7, width = 0.05,  conf.level = 0.95, method = "wilson")
 ```
-The required sample size is n=1296 (the output says 1295.303, which we round up to 1296).
 
+The required sample size is n=1296 (the output says 1295.303, which we round up to 1296).
 
 
 
