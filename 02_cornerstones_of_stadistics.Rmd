@@ -448,7 +448,6 @@ H1: the variables are dependent; there is at least one pair x,y such that P(Y=y|
 
 
 Mathematically, a test of homogeneity is equivalent to a test of independence. 
-
 The difference between the two lies in how the data is sampled. When we plan to perform a test of independence,
 we sample a single population and then break the observations down into the categories in the contingency table based on their X and Y values. 
 
@@ -464,11 +463,145 @@ H1: the variable does not follow the distribution F.
 
 All three of these can be tested using a χ2-test (chi-squared test).
 
+Let’s say that X has cx levels and that Y has cy levels. Then for each of the cx⋅cy cells in the table, we can compare the observed outcome oij to the outcome eij that would be expected if the null hypothesis were true. If the observed outcomes deviate a lot from what we would expect under the null hypothesis, we have evidence against H0
+
+.
+
+Formally, the test is performed by computing the statistic
+      
+     cx  cy
+X2 =  ∑   ∑  (oij−eij)pow2 / eij
+     i=1 j=1 
+
+Large values of this statistic count as evidence against H0
 
 ...
 
+To run the test, we use the **chisq.test** function as follows:
+
+No pipes:
+```{r}
+chisq.test(ftable(penguins$species, penguins$sex))
+```
+
+pipes:
+```{r}
+penguins |>
+  select(species, sex) |>
+  ftable() |>
+  chisq.test()
+```
+
+If we wish to run a goodness-of-fit test, we specify the distribution F given by H0 using the argument p. 
+If our null hypothesis is that both sexes are equally common, this would look as follows:
+
+no pipes:
+```{r}
+chisq.test(ftable(penguins$sex), p = c(0.5, 0.5))
+```
+
+pipes:
+```{r}
+penguins |>
+  select(sex) |>
+  ftable() |>
+  chisq.test(p = c(0.5, 0.5))
+```
+
+p-value is high, there is not enough evidence to reject H0 (NOT that it is true)
 
 
+- When can we use χ2-tests?
+
+χ2-tests are approximate tests that require sufficiently large sample sizes to attain the right type I error rate.
+
+What is “large” is largely determined by how high the smallest expected cell counts are. A common rule-of-thumb is that 
+the approximation is adequate as long as all eij>1 and at most 20% of the cells have eij<5 (Cochran, 1954).
+
+To assess this, we can check the expected counts of the cells:
+
+```{r}
+# Save the results of the test:
+penguins |> 
+  select(species, sex) |> 
+  ftable() |> 
+  chisq.test() -> x2res
+
+# Extract the expected counts:
+x2res$expected
+```
+
+The chisq.test output will also give a warning if any cells have eij<5.
+
+If your sample size is too small to use a χ2 tests, there are two options in addition to gathering more data. The first is to merge some cells by merging levels of one or more of your categorical variables; see Section 5.4 for more on how this can be done. The second is to use simulated p-values, i.e., to use simulation rather than a mathematical approximation to compute the p-value. This turns the test into an approximate permutation test: the X2 statistic is computed for a large number of randomly selected permutations of the table, and the p-value is then computed as the proportion of permutations for which X2 was at least as large as for the original table. 
+
+To use this approach, we add the argument **simulate.p.value = TRUE** to chisq.test. The argument **B** can also be added, 
+to control how many permutations should be simulated; B = 9999 is a reasonable default choice.
+
+No pipes:
+```{r}
+chisq.test(ftable(penguins$species, penguins$sex), simulate.p.value = TRUE, B = 9999)
+```
+
+pipes:
+```{r}
+penguins |>
+  select(species, sex) |>
+  ftable() |>
+  chisq.test(simulate.p.value = TRUE, B = 9999)
+```
+
+
+**Exercise 3.1**
+In cases where our data is a contingency table rather than a data frame with one row for each observation, 
+the simplest way to perform a χ2-test is to create a matrix object for the contingency table and run chisq.test with that as the input. 
+Here is an example of such data, from a study on antibiotics resistance. In a lab, 18 strains of E.coli bacteria 
+and 25 strains of K.pneumoniae bacteria were tested for resistance against an antibiotic. 
+The table shows how many strains were resistant:
+
+```{r}
+bacteria <- matrix(c(15, 3, 17, 8),
+            2, 2,
+            byrow = TRUE,
+            dimnames = list(c("E.coli", "K.pneumoniae"),
+            c("Not resistant", "Resistant")))
+bacteria
+```
+
+Perform a χ2 test of homogeneity to see if the proportion of resistant strains is the same for both species of bacteria. 
+Are the conditions for running a χ2-test met? If not, what can you do instead?
+
+
+```{r}
+chisq.test(bacteria)
+```
+
+The p-value is 0.4339, so we have no evidence against H0.
+
+What about the criteria for running the test? We can check the expected counts:
+
+```{r}
+chisq.test(bacteria)$expected
+```
+
+                Not resistant Resistant
+E.coli            13.39535  4.604651
+K.pneumoniae      18.60465  6.395349
+
+
+There is one cell (resistant E.coli) for which the expected count is less than 5. This means that 25 % of the cells have a count below 5, 
+and the criteria for running the test are not met. 
+We should consider using simulation to compute the p-value, 
+
+```{r}
+chisq.test(bacteria, simulate.p.value = TRUE, B = 9999)
+```
+
+or using Fisher’s exact test instead:
+
+```{r}
+fisher.test(bacteria)
+```
 
 
 
