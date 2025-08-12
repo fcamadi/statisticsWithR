@@ -473,7 +473,7 @@ Formally, the test is performed by computing the statistic
 X2 =  ∑   ∑  (oij−eij)pow2 / eij
      i=1 j=1 
 
-Large values of this statistic count as evidence against H0
+**Large values of this statistic count as evidence against H0**
 
 ...
 
