@@ -846,5 +846,126 @@ penguins |>
 P-value is very small, so we reject H0 that there is no difference in average weight.
 The confidence interval (-569.7903 -253.7391) says that on average female Chinstrap penguins weight between 253 and 560 g less than male ones.
 
+### One-sided hypotheses
+
+The t-test can also be used to test directed hypotheses, such as:
+
+H0: μ1−μ2≥0
+H1: μ1−μ2<0
+
+To specify that a one-sided test should be performed, we use the **alternative** argument, 
+just as we did for Fisher’s exact test in Section 3.3.4:
+
+no pipes:
+```{r}
+library(palmerpenguins)
+
+t.test(flipper_length_mm ~ sex,  data = subset(penguins, species == "Chinstrap"), alternative = "less")
+```
+
+P-value is very small, so we reject H0 μ1−μ2≥0
+
+pipes:
+```{r}
+penguins |> 
+  filter(species == "Chinstrap")  |> 
+  t.test(flipper_length_mm ~ sex,  data = _, alternative = "less")
+```
+
+### The t-test for a single sample
+
+In some cases, we wish to test hypotheses about the mean value of a single population. For example:
+
+H0: the mean value equals some specific value μ0; μ=μ0
+H1: the mean value does not equal μ0; μ≠μ0
+
+
+This can be done using a one-sample t-test, which uses a test statistic based on the sample mean ¯x. 
+We use t.test and specify the value μ0 of μ under H0 using the argument **mu**. 
+Here’s an example where we test whether the average length of the flippers of male Chinstrap penguins is 200 mm:
+
+no pipes:
+```{r}
+library(palmerpenguins)
+
+t.test(flipper_length_mm ~ 1,
+       data = subset(penguins, species == "Chinstrap" &  sex == "male"),
+       mu = 200)
+
+# Or, in two steps:
+#new_data <- penguins[penguins$species == "Chinstrap" &  penguins$sex == "male",]
+#t.test(new_data$flipper_length_mm, mu = 200)
+```
+
+
+pipes:
+```{r}
+library(palmerpenguins)
+
+penguins |>
+  filter(species == "Chinstrap", sex == "male") |> 
+  t.test(flipper_length_mm ~ 1, data = _, mu = 200)
+```
+
+P-value is much bigger than 0.05 so we cannot reject H0. That is, there is no statistical evidence that the
+average flipper length isn't 200 mm.
+
+
+**Exercise 3.6 **
+Consider the penguins data again. Run a one-sided test to see if the average flipper length for male Chinstrap penguins is greater than 195.
+
+pipes:
+```{r}
+library(palmerpenguins)
+
+penguins |>
+  filter(species == "Chinstrap", sex == "male") |> 
+  t.test(flipper_length_mm ~ 1, data = _, mu = 195, alternative = "great") # alternative = greater => H0 == less or equal
+```
+
+The p-value is 1.7e-05 (0.000017), so we reject the null hypothesis that the average flipper length is less than or equal to 195 mm.
+
+
+### The t-test for paired samples
+
+In some cases, we have paired observations in our data, i.e., observations that have been collected in pairs. 
+A common example is when we make measurements on the same subjects before and after a treatment. 
+In such situations, we are often interested in the effect Δ of the treatment, where Δ measures how much 
+the mean value changes because of the treatment. A common set of hypotheses are:
+
+H0: there is no effect; Δ=0
+H1: there is an effect; Δ≠0.
+
+These can be tested using a paired samples t-test, where the two samples (before and after) are compared 
+using the information about the pairing. Here is an example with measurements before and after a treatment 
+stored in different columns in a table:
+
+```{r}
+exdata <- data.frame(before = c(8.5, 4.4, 9.4, 0.0, 2.2, 9.7, 6.2, 8.2),
+                     after = c(8.5,  4.8, 10.1,  1.0,  5.6, 11.4, 7.8, 10.2))
+```
+
+no pipes:
+```{r}
+t.test(exdata$after, exdata$before, paired = TRUE)
+```
+
+pipes:
+```{r}
+exdata |>
+  t.test(Pair(after, before) ~ 1, data = _)
+```
+
+P-value is (a bit) smaller than 0.05, so we can reject the null hypothesis that there is no effect.
+(On average, the difference is in the range (0.4518,2.2482)).
+
+We could run a two-sample t-test to compare the two samples, but that would result in a test with lower power, as it ignores some of the information available to use (namely that the observations belong in pairs). A paired samples t-test is always preferable when you have paired data.
+
+###  When can we use the t-test?
+
+
+
+
+
 
 
