@@ -963,6 +963,96 @@ We could run a two-sample t-test to compare the two samples, but that would resu
 
 ###  When can we use the t-test?
 
+The first requirements for the t-test to work is that the observations are independent. 
+(The only exception to this is when we have paired samples).
+
+And then there is the matter of the normal distribution.
+...
+Unfortunately, real data is almost never normally distributed.
+
+If the variable doesn’t follow a normal distribution (you’ll learn more about assessing the normality assumption in Section 7.1.3), 
+the tests and confidence intervals may still be valid if you have large sample sizes, or, for the two-sample test, 
+if you have balanced sample sizes, i.e., equally many observations in each group. 
+How large “large” is depends on the shape of the distribution. The less symmetric it is, the larger the sample size needs to be.
+
+Today we can use simulation to carry out analyses with fewer assumptions. As an added bonus, these simulation techniques 
+often happen to result in statistical methods with better performance than Student’s t-test and other similar methods. 
+You’ll learn about two simulation-based ways to compute p-values for the t-test next.
+
+
+### Permutation t-tests
+
+Continuing our example with the Chinstrap penguin data, we note that there are 34 males and 34 females in the sample – 68 animals in total. 
+If there are no differences in flipper length between the sexes (i.e., if H0 is true), the sex labels offer no information about how long 
+the flippers are. Under the null hypothesis, the assignment of sex labels to different animals is therefore for all intents and purposes random. 
+To find the distribution of the test statistic under the null hypothesis, we could look at all possible ways to assign 34 animals the label 
+male and 34 animals the label female. That is, look at all permutations of the labels. The probability of a result at least as extreme as 
+that obtained in our sample (in the direction of the alternative), i.e., the p-value, would then be the proportion of permutations that yield a 
+t-statistic at least as extreme as that in our sample.
+
+This is a permutation version of the t-test. Note that it doesn’t rely on any assumptions about normality.
+...
+The idea is that we look at a large number of randomly selected permutations, and check for how many of them we obtain a test statistic 
+that is more extreme than the sample test statistic. The law of large numbers guarantees that this proportion will converge to 
+the permutation test p-value as the number of randomly selected permutations increases.
+
+
+No pipes:
+```{r}
+library(palmerpenguins)
+library(MKinfer)
+
+perm.t.test(flipper_length_mm ~ sex, data = subset(penguins, species == "Chinstrap"))
+```
+
+Pipes:
+```{r}
+library(palmerpenguins)
+library(MKinfer)
+
+penguins |> 
+  filter(species == "Chinstrap") |> 
+  perm.t.test(flipper_length_mm ~ sex, data = _)
+```
+
+Note that two p-values and confidence intervals are presented: one set from the permutations and one from the traditional approach 
+– so make sure that you look at the right ones!
+
+So, you say, how many randomly selected permutations do we need to get an accurate approximation of the permutation test p-value? 
+My answer is that, by default, perm.t.test uses 9,999 permutations (you can change that number using the argument R), 
+which is widely considered to be a reasonable number. If you are running a permutation test with a much more complex 
+(and computationally intensive) statistic, you may have to use a lower number, but avoid that if you can.
+
+
+### Bootstrap t-tests
+
+A popular method for computing p-values and confidence intervals that resembles the permutation approach is the bootstrap. 
+Instead of drawing permuted samples, new observations are drawn with replacement from the original sample, and then 
+labels are randomly allocated to them. 
+That means that each randomly drawn sample will differ not only in the permutation of labels, but also in what observations are included 
+– some may appear more than once and some not at all. 
+We can then check what proportion of these bootstrap samples that yield a more extreme test statistic than what we observed in our original sample.
+In effect, the p-value is computed in the same way as in the traditional t-test, but with the theoretical normal distribution replaced 
+with the empirical distribution of the data. 
+We can therefore view the bootstrap t-test as a compromise between the traditional t-test and the permutation t-test.
+
+No pipes:
+```{r}
+library(palmerpenguins)
+library(MKinfer)
+
+boot.t.test(flipper_length_mm ~ sex, data = subset(penguins, species == "Chinstrap"))
+```
+
+Pipes:
+```{r}
+library(palmerpenguins)
+library(MKinfer)
+
+penguins |> 
+  filter(species == "Chinstrap") |> 
+  boot.t.test(flipper_length_mm ~ sex, data = _)
+```
 
 
 
