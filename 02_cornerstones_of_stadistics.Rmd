@@ -1106,8 +1106,39 @@ power.welch.t.test(power = 0.9, delta = 1, sd1 = 0.5, sd2 = 1,
                    alternative = "one.sided")
 ```
 
+You may wonder how to choose delta and sd. If possible, it is good to base these numbers on a pilot study or related previous work. 
+If no such data is available, your guess is as good as mine. For delta, some useful terminology comes from medical statistics, 
+where the concept of clinical significance is used increasingly often.
+Make sure that delta is large enough to be clinically significant, that is, large enough to actually matter in practice.
+
+If we have reason to believe that the data follows a non-normal distribution, another option is to use simulation to compute 
+the sample size that will be required. We’ll do just that in Section 7.3.
 
 
+**Exercise 3.7** 
+Return to the one-sided t-test that you performed in Exercise 3.6. Assume that delta is 5 (i.e., that the true mean is 200)
+and that the standard deviation is 6. 
+How large does the sample size n have to be for the power of the test to be 95% at a 5% significance level? 
+What is the power of the test when the sample size is n=34 (which is the case for the penguins data)?
 
+First, we assume that delta is 5 and that the standard deviation is 6, and want to find the n required 
+to achieve 95 % power at a 5 % significance level:
 
+```{r}
+power.t.test(power = 0.95, delta = 5, sd = 6, sig.level = 0.05,
+             type = "one.sample", 
+             alternative = "one.sided")
+```
+
+We see than n needs to be at least 18 (17.04 rounded up) to achieve the desired power.
+
+The actual sample size for this dataset is n=34. Let’s see what power that gives us:
+
+```{r}
+power.t.test(n = 34, delta = 5, sd = 6, sig.level = 0.05,
+             type = "one.sample", 
+             alternative = "one.sided")
+```
+
+The power is 0.999. We’re more or less guaranteed to find statistical evidence that the mean is greater than 195 if the true mean is 200!
 
