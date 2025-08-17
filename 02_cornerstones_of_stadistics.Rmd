@@ -1055,6 +1055,58 @@ penguins |>
 ```
 
 
+### Sample size computations for the t-test
+
+In any study, it is important to collect enough data for the inference that we wish to make. 
+If we want to use a t-test for a test about a mean or the difference of two means, what constitutes “enough data” 
+is usually measured by the power of the test. The sample is large enough when the test achieves high enough power.
+
+If we are comfortable assuming normality (and we may well be, especially as the main goal with sample size computations 
+is to get a ballpark figure), we can use **power.t.test** to compute what power our test would achieve under different settings.
+
+For a two-sample test with unequal variances, we can use **power.welch.t.test** from MKpower instead. 
+
+Both functions can be used to either find the sample size required for a certain power,
+or to find out what power will be obtained from a given sample size.
+
+power.t.test and power.welch.t.test both use **delta** to denote the mean difference under the alternative hypothesis. 
+In addition, we must supply the standard deviation sd of the distribution. 
+
+Here are some examples:
+
+
+```{r}
+library(MKpower)
+
+# A one-sided one-sample test with 80 % power:
+power.t.test(power = 0.8, delta = 1, sd = 1, sig.level = 0.05,
+             type = "one.sample", alternative = "one.sided")
+```
+
+
+```{r}
+# A two-sided two-sample test with sample size n = 25 and equal
+# variances:
+power.t.test(n = 25, delta = 1, sd = 1, sig.level = 0.05,
+             type = "two.sample", alternative = "two.sided")
+```
+
+
+```{r}
+# A one-sided two-sample test with 90 % power and equal variances:
+power.t.test(power = 0.9, delta = 1, sd = 0.5, sig.level = 0.01,
+             type = "two.sample", alternative = "one.sided")
+```
+
+
+```{r}
+# A one-sided two-sample test with 90 % power and unequal variances:
+power.welch.t.test(power = 0.9, delta = 1, sd1 = 0.5, sd2 = 1,
+                   sig.level = 0.01,
+                   alternative = "one.sided")
+```
+
+
 
 
 
