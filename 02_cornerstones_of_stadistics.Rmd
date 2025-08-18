@@ -29,6 +29,10 @@ library(flextable)
 if (!require(ivo.table)) install.packages('ivo.table', dependencies = T)
 library(ivo.table)
 
+# 3.9 Bayesian approaches
+if (!require(rstanarm)) install.packages('rstanarm', dependencies = T)
+library(rstanarm)
+
 
 ```
 
@@ -1239,6 +1243,102 @@ ggplot(msleep, aes(x = sleep_total, y = brainwt)) +
 ```
 
 
+## 3.9 Bayesian approaches
 
+
+The **Bayesian paradigm** differs in many ways from the **frequentist approach^ that we use in the rest of this chapter.
+In Bayesian statistics, we first define a prior distribution for the parameters that we are interested in, representing our beliefs about them 
+(for instance based on previous studies). Bayes’ theorem is then used to derive the posterior distribution, i.e., the distribution of 
+the coefficients given the prior distribution and the data. Philosophically, this is very different from frequentist estimation, 
+in which we don’t incorporate prior beliefs into our models (except for through what variables we include).
+
+In many situations, we don’t have access to data that can be used to create an informative prior distribution. 
+In such cases, we can use a so-called weakly informative prior instead. These act as a sort of “default priors”, 
+representing large uncertainty about the values of the coefficients.
+
+The **rstanarm** package contains methods for using Bayesian estimation to fit some common statistical models. 
+It takes a while to install but is well worth the wait:
+
+(done above)
+
+### Inference for a proportion
+
+Let’s return to the example that we used in Section 3.5.1:
+
+
+```{r}
+library(ggplot2)
+
+herbivores <- msleep[msleep$vore == "herbi",]
+
+# Compute the number of animals for which we know the sleep time:
+n <- sum(!is.na(herbivores$sleep_total))
+
+# Compute the number of "successes", i.e. the number of animals
+# that sleep for more than 7 hours:
+x <- sum(herbivores$sleep_total > 7, na.rm = TRUE)
+```
+
+The Bayesian analogue to a confidence interval is a credible interval: an interval that covers the population parameter 
+with a posterior probability that is 1−α
+
+An excellent Bayesian credible interval for a proportion is the **Jeffreys interval**, which uses the weakly informative Jeffreys prior:
+
+```{r}
+library(MKinfer)
+
+binomCI(x, n, conf.level = 0.95, method = "jeffreys")
+```
+
+The Jeffreys interval is interesting because it also has good frequentist properties (Brown et al., 2001).
+
+
+### Inference for means
+
+To use a Bayesian model with a weakly informative prior to analyse the difference in sleep time between herbivores and carnivores,
+we load **rstanarm** and use **stan_glm** in complete analogue with how we use t.test:
+
+```{r}
+library(rstanarm)
+library(ggplot2)
+
+m <- stan_glm(sleep_total ~ vore, data = subset(msleep, vore == "carni" | vore == "herbi"))
+
+# Print the estimates:
+m
+```
+
+There are two estimates here: an “intercept” (the average sleep time for carnivores) and 
+voreherbi (the difference between carnivores and herbivores). 
+To plot the posterior distribution of the difference, we can use plot:
+
+```{r}
+plot(m, "dens", pars = c("voreherbi"))
+```
+
+To get a 95% credible interval for the difference, we can use posterior_interval as follows:
+
+```{r}
+posterior_interval(m, pars = c("voreherbi"), prob = 0.95)
+```
+
+p-values are not a part of Bayesian statistics, so don’t expect any. It is however possible to perform a kind of Bayesian test 
+of whether there is a difference by checking whether the credible interval for the difference contains 0.
+If not, we have evidence that there is a difference (Thulin, 2014c).
+In this case, 0 is contained in the interval, and there is no evidence of a difference.
+
+In most cases, Bayesian estimation is done using Monte Carlo integration (specifically, a class of methods known as Markov Chain Monte Carlo, MCMC). 
+To check that the model fitting has converged, we can use a measure called ^R.
+It should be less than 1.1 if the fitting has converged:
+
+```{r}
+plot(m, "rhat")
+```
+
+If the model fitting hasn’t converged, you may need to increase the number of iterations of the MCMC algorithm.
+You can increase the number of iterations by adding the argument iter to stan_glm (the default is 2,000).
+
+If you want to use a custom prior for your analysis, that is of course possible too. 
+See ?priors and ?stan_glm for details about this, and about the default weakly informative prior.
 
 
