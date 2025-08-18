@@ -1342,3 +1342,38 @@ If you want to use a custom prior for your analysis, that is of course possible 
 See ?priors and ?stan_glm for details about this, and about the default weakly informative prior.
 
 
+## 3.10 Reporting statistical results
+
+See:
+
+https://modernstatisticswithr.com/basicstatistics.html#reporting-statistical-results
+
+
+**Citing R packages:**
+
+In statistical reports, it is often a good idea to specify what version of a software or a package you used,
+for the sake of reproducibility (indeed, this is a requirement in some scientific journals). 
+To get the citation information for the version of R that you are running, simply type citation().
+To get the version number, you can use R.Version as follows:
+
+```{r}
+citation()
+R.Version()$version.string
+```
+
+To get the citation and version information for a package, use citation and packageVersion as follows:
+
+```{r}
+citation("ggplot2")
+packageVersion("ggplot2")
+```
+
+
+## 3.11 Ethics and good statistical practice
+
+See:
+
+https://modernstatisticswithr.com/basicstatistics.html#ethicalguidelines
+
+
+
