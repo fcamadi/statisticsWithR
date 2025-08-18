@@ -1142,3 +1142,103 @@ power.t.test(n = 34, delta = 5, sd = 6, sig.level = 0.05,
 
 The power is 0.999. We’re more or less guaranteed to find statistical evidence that the mean is greater than 195 if the true mean is 200!
 
+
+## 3.7 Multiple testing
+
+https://modernstatisticswithr.com/basicstatistics.html#multipletesting
+
+
+## 3.8 Correlations
+
+We are often interested in measuring how strong the dependence between two variables is. A common group of such measures are called 
+correlation measures. A correlation measure ranges from -1 (perfect negative dependence) to 1 (perfect positive dependence), 
+with 0 meaning that there is no dependence (in the sense measured by the correlation measure). Values close to 1 indicate
+strong positive dependence, and values close to -1 indicate strong negative dependence.
+
+###  Estimation
+
+The most commonly used correlation measure is the **Pearson correlation**. It measures how strong the linear dependence is between two variables. This means that the correlation can be close to 0 even if there is a dependence, as long as that dependence is non-linear.
+
+We can compute the Pearson correlation between two variables using **cor**:
+
+No pipes:
+```{r}
+library(palmerpenguins)
+
+cor(penguins$flipper_length_mm,  penguins$body_mass_g,  use = "pairwise.complete")
+```
+
+Pipes:
+```{r}
+library(palmerpenguins)
+
+penguins |> 
+  with(cor(flipper_length_mm, body_mass_g, use = "pairwise.complete"))
+```
+
+The setting use = "pairwise.complete" means that NA values are ignored.
+
+The result, a correlation of 0.87, indicates a fairly strong linear dependence between the two variables.
+
+Another common option is the **Spearman correlation**, which measures the strength of monotone dependence between two variables. 
+This means that it’s better at finding non-linear dependencies.
+
+No pipes:
+```{r}
+library(palmerpenguins)
+cor(penguins$flipper_length_mm,  penguins$body_mass_g, method = "spearman", use = "pairwise.complete")
+```
+
+
+Pipes:
+```{r}
+library(palmerpenguins)
+penguins |> 
+  with(cor(flipper_length_mm, body_mass_g, method = "spearman", use = "pairwise.complete"))
+```
+
+In this case, the two methods yield similar results.
+
+
+### Hypothesis testing
+
+To test the null hypothesis that two numerical variables are uncorrelated, i.e., that their correlation is 0, we can use **cor.test**. 
+The test can be based on either the Pearson correlation (the default) or the Spearman correlation.
+
+Let’s try it with sleep times and brain weight, using the msleep data again:
+
+```{r}
+library(ggplot2)
+
+# Pearson correlation
+cor.test(msleep$sleep_total, msleep$brainwt, use = "pairwise.complete")
+
+# Spearman correlation
+cor.test(msleep$sleep_total, msleep$brainwt, method = "spearman", use = "pairwise.complete")
+```
+
+These tests are all based on asymptotic approximations, which among other things cause the Pearson correlation test 
+to perform poorly for non-normal data. In Section 7.4 we will create a bootstrap version of the correlation test,
+which has better performance.
+
+
+Correlation plot:
+
+```{r}
+# Load the necessary library
+library(ggplot2)
+
+# Create a scatter plot with a regression line
+ggplot(msleep, aes(x = sleep_total, y = brainwt)) +
+  geom_point() +  # Scatter plot
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  # Regression line
+  labs(title = "Correlation between sleep time and brain weight",
+       x = "Sleep time",
+       y = "Brain weight") +
+  theme_minimal()
+```
+
+
+
+
+
