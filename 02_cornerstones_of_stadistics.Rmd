@@ -1,5 +1,5 @@
 ---
-title: "02_cornerstones_of_stadistics"
+title: "03_cornerstones_of_stadistics"
 author: "Fran Camacho"
 date: "2025-08-06"
 output:
@@ -9,7 +9,7 @@ output:
   pdf_document: default
 ---
 
-# 02 - Cornerstones of Stadistics
+# 03 - Cornerstones of Stadistics
 
 
 ```{r}
