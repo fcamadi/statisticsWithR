@@ -9,7 +9,7 @@ output:
   pdf_document: default
 ---
 
-# 03 - Cornerstones of Stadistics
+# 3 - Cornerstones of Stadistics
 
 
 ```{r}
