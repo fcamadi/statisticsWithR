@@ -1,0 +1,147 @@
+---
+title: "04_EDA_and_unsupervised_learning"
+author: "Fran Camacho"
+date: "2025-08-19"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+
+# 4 - Exploratory data analysis and unsupervised learning
+
+https://modernstatisticswithr.com/eda.html#eda
+
+`x = 2 * z`
+
+
+```{r}
+#Libraries
+
+#https://tidyverse.r-universe.dev/tidyverse
+if (!require(tidyverse)) install.packages('tidyverse', repos = c('https://tidyverse.r-universe.dev', 'https://cloud.r-project.org'))
+library(tidyverse)
+
+
+```
+
+
+Exploratory data analysis (EDA) is a process in which we summarise and visually explore a dataset.
+An important part of EDA is unsupervised learning, which is a collection of methods for finding interesting subgroups and patterns in our data. 
+Unlike statistical hypothesis testing, which is used to reject hypotheses, EDA can be used to generate hypotheses
+(which can then be confirmed or rejected by new studies). Another purpose of EDA is to find outliers and incorrect observations,
+which can lead to a cleaner and more useful dataset.
+
+...
+
+
+## 4.1 Reports with R Markdown
+
+...
+
+### Formatting text
+
+To create plain text in a Markdown file, you simply have to write plain text. 
+If you wish to add some formatting to your text, you can use the following:
+
+- _italics_ or *italics*: to create text in italics.
+
+- __bold__ or **bold**: to create bold text.
+
+- [linked text](http://www.modernstatisticswithr.com): to create linked text.
+
+- `code`: to include inline code in your document.
+
+- to create inline equations like a2+b2=c2 using LaTeX syntax:  $a^2 + b^2 = c^2$
+
+- to create a centred equation on a new line: $$a^2 + b^2 = c^2$$: 
+
+...
+
+
+### Lists, tables, and images
+
+
+To create a **bullet list**, you can use * as follows. Note that you need a blank line between your list and the previous paragraph to begin a list.
+
+* Item 1
+* Item 2
+   + Sub-item 1
+   + Sub-item 2
+* Item 3
+
+
+To create an **ordered list**, use:
+
+1. First item
+2. Second item
+  i) Sub-item 1
+  ii) Sub-item 2
+3. Item 3
+
+To create a **table**, use | and --------- as follows:
+
+Column 1  | Column 2
+--------- | ---------
+Content  | More content
+Even more  | And some here
+Even more?  | Yes!
+
+
+To include an **image**, use the same syntax as when creating linked text with a link to the image path 
+(either local or on the web), but with a ! in front:
+
+![](https://www.r-project.org/Rlogo.png)
+
+![The R logo.](https://www.r-project.org/Rlogo.png)
+
+
+### Code chunks
+
+In RStudio, **Ctrl+Alt+I** is a keyboard shortcut for inserting this kind of code chunk:
+
+```{r}
+
+```
+
+We can add a name and a caption to the chunk, which lets us reference objects created by the chunk:
+
+```{r pressureplot, fig.cap = "Plot of the pressure data."}
+plot(pressure)
+```
+
+As we can see in Figure \@ref(fig:pressureplot), the relationship between temperature and pressure resembles a banana.
+
+In addition, you can add settings to the chunk header to control its behaviour:
+
+- echo = FALSE      to run the code without printing it,
+- eval = FALSE      to print the code without running it,
+- results = "hide"  to hide printed output,
+- fig.show = "hide" to hide plots,
+- warning = FALSE   to suppress warning messages from being printed in your document,
+- message = FALSE   to suppress other messages from being printed in your document,
+- include = FALSE   to run a chunk without showing the code or results in the document,
+- error = TRUE      to continue running your R Markdown document even if there is an error in the chunk 
+                    (by default, the documentation creation stops if there is an error).
+
+
+Data frames can be printed either as in the Console or as a nicely formatted table. 
+
+For example:
+
+```{r}
+head(airquality)
+```
+whereas yields a nicely formatted table:
+
+```{r}
+knitr::kable(
+  head(airquality),
+  caption = "Some data I found."
+)
+```
+
+
+
