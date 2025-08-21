@@ -29,6 +29,10 @@ if (!require(hrbrthemes)) install.packages('hrbrthemes', dependencies = T)
 install.packages("hrbrthemes")
 if (!require(ggthemes)) install.packages('ggthemes', dependencies = T)
 install.packages("ggthemes")
+
+if (!require(patchwork)) install.packages('patchwork', dependencies = T)
+library(patchwork)
+
 ```
 
 
@@ -364,6 +368,324 @@ p + theme(panel.grid.major = element_line(colour = "black"),
           axis.text = element_text(family = "mono", colour = "blue"),
           axis.title = element_text(family = "serif", size = 14))
 ```
+
+
+## 4.3 Exploring distributions
+
+It is often useful to visualise the distribution of a numerical variable. Comparing the distributions of different groups can lead to important insights. 
+Visualising distributions is also essential when checking assumptions used for various statistical tests (sometimes called initial data analysis). 
+In this section, we will illustrate how this can be done using the *diamonds* data from the ggplot2 package. You can read more about it by running *?diamonds*.
+
+
+### Density plots and frequency polygons
+
+We already know how to visualise the distribution of the data by dividing it into bins and plotting a histogram:
+
+```{r}
+library(ggplot2)
+
+ggplot(diamonds, aes(carat)) +
+      geom_histogram(colour = "black")
+```
+
+A similar plot is created using frequency polygons, which uses lines instead of bars to display the counts in the bins:
+
+```{r}
+ggplot(diamonds, aes(carat)) +
+      geom_freqpoly()
+```
+
+An advantage with frequency polygons is that they can be used to compare groups, e.g., diamonds with different cuts, without facetting:
+
+```{r}
+p <- ggplot(diamonds, aes(carat, colour = cut)) +
+     geom_freqpoly()
+
+# Legend below figure:
+p # + theme(legend.position = "bottom")
+```
+
+It is clear from this figure that there are more diamonds with ideal cuts than diamonds with fair cuts in the data. 
+The polygons have roughly the same shape, except perhaps for the polygon for diamonds with fair cuts.
+
+In some cases, we are more interested in the shape of the distribution than in the actual counts in the different bins.
+Density plots are similar to frequency polygons but show an estimate of the density function of the underlying random variable.
+These estimates are smooth curves that are scaled so that the area below them is 1 (i.e., scaled to be proper density functions):
+
+```{r}
+ggplot(diamonds, aes(carat, colour = cut)) +
+      geom_density()
+```
+
+From this figure, it becomes clear that low-carat diamonds tend to have better cuts, which wasn’t obvious from the frequency polygons. 
+However, the plot does not provide any information about how common different cuts are. Use density plots if you’re more interested 
+in the shape of a variable’s distribution, and frequency polygons if you’re more interested in counts.
+
+
+
+
+**Exercise 4.2**
+
+Using the density plot we just created above and the documentation for geom_density, do the following:
+
+- Increase the smoothness of the density curves.
+
+```{r}
+ggplot(diamonds, aes(carat, colour = cut)) +
+      geom_density(bw = 0.25)
+```
+
+- Fill the area under the density curves with the same colour as the curves themselves.
+
+```{r}
+ggplot(diamonds, aes(carat, colour = cut, fill = cut)) +
+      geom_density(bw = 0.25)
+```
+
+- Make the colours that fill the areas under the curves transparent.
+
+Because the densities overlap, it’d be better to make the fill colours slightly transparent. We add alpha to the geom:
+
+```{r}
+ggplot(diamonds, aes(carat, colour = cut, fill = cut)) +
+      geom_density(bw = 0.2, alpha = 0.25)
+```
+
+- The figure still isn’t that easy to interpret. Install and load the ggridges package, an extension of ggplot2 that allows you to make so-called ridge plots
+(density plots that are separated along the y-axis, similar to facetting). 
+Read the documentation for geom_density_ridges and use it to make a ridge plot of diamond prices for different cuts.
+
+A similar plot can be created using geom_density_ridges from the **ggridges** package. 
+Note that you must set y = cut in the aes, because the densities should be separated by cut.
+
+```{r}
+if (!require(ggridges)) install.packages('ggridges', dependencies = T)
+library(ggridges)
+
+ggplot(diamonds, aes(carat, cut, fill = cut)) +
+      geom_density_ridges()
+```
+
+**Exercise 4.3**
+
+Return to the histogram created by ggplot(diamonds, aes(carat)) + geom_histogram() above. 
+As there are very few diamonds with carat greater than 3, cut the x-axis at 3. 
+Then decrease the bin width to 0.01. Do any interesting patterns emerge?
+
+```{r}
+ggplot(diamonds, aes(carat)) +
+      geom_histogram(binwidth = 0.01) +
+      xlim(0, 3)
+```
+It appears that carat values that are just above multiples of 0.25 are more common than other values. 
+We’ll explore that next.
+
+
+### Asking questions
+
+Exercise 4.3 above causes us to ask why diamonds with carat values that are multiples of 0.25 are more common than others. 
+Perhaps the price is involved? Unfortunately, a plot of carat versus price is not that informative:
+
+```{r}
+ggplot(data = diamonds, mapping = aes(carat, price)) +
+      geom_point(size = 0.05)
+```
+
+Maybe we could compute the average price in each bin of the histogram? In that case, we need to extract the bin breaks from the histogram somehow. 
+We could then create a new categorical variable using the breaks with cut (as we did in Exercise 2.27). 
+It turns out that extracting the bins is much easier using base graphics than ggplot2, so let’s do that:
+
+```{r}
+# Extract information from a histogram with bin width 0.01, which corresponds to 481 breaks:
+carat_br <- hist(diamonds$carat, breaks = 481, right = FALSE, plot = FALSE)
+
+# Of interest to us are:
+# carat_br$breaks, which contains the breaks for the bins
+# carat_br$mid, which contains the midpoints of the bins (useful for plotting!)
+
+# Create categories for each bin:
+diamonds$carat_cat <- cut(diamonds$carat, 481, right = FALSE)
+```
+
+We now have a variable, carat_cat, that shows to which bin each observation belongs. Next, we’d like to compute the mean for each bin. 
+This is a grouped summary – mean by category. After we’ve computed the bin means, we could then plot them against the bin midpoints. 
+Let’s try it:
+
+```{r}
+means <- aggregate(price ~ carat_cat, data = diamonds, FUN = mean)
+
+plot(carat_br$mid, means$price)
+
+#That didn’t work as intended. We get an error message when attempting to plot the results:
+```
+
+By default, aggregate ignores groups for which there are no values when computing grouped summaries. 
+In this case, there are a lot of empty bins – there is for instance no observation in the [4.99,5) bin. 
+In fact, only 272 out of the 481 bins are non-empty.
+
+We can solve this in different ways. One way is to remove the empty bins. We can do this using the match function, 
+which returns the positions of matching values in two vectors. If we use it with the bins from the grouped summary and 
+the vector containing all bins, we can find the indices of the non-empty bins. 
+This requires the use of the **levels** function, which you’ll learn more about in Section 5.4:
+
+```{r}
+means <- aggregate(price ~ carat_cat, data = diamonds, FUN = mean)
+
+id <- match(means$carat_cat, levels(diamonds$carat_cat))
+```
+
+Finally, we’ll also add some vertical lines to our plot, to call attention to multiples of 0.25.
+
+Using base graphics is faster here:
+```{r}
+plot(carat_br$mid[id], means$price, cex = 0.5)
+
+# Add vertical lines at multiples
+# of 0.25:
+abline(v = c(0.5, 0.75, 1, 1.25, 1.5))
+```
+
+But we can of course stick to ggplot2 if we like:
+```{r}
+library(ggplot2)
+
+d2 <- data.frame(bin = carat_br$mid[id], mean = means$price)
+
+ggplot(d2, aes(bin, mean)) +
+       geom_point() +
+       geom_vline(xintercept = c(0.5, 0.75, 1, 1.25, 1.5))
+       # geom_vline add vertical lines at multiples of 0.25
+```
+
+It appears that there are small jumps in the prices at some of the 0.25-marks. 
+This explains why there are more diamonds just above these marks than just below.
+
+The above example illustrates three crucial things regarding exploratory data analysis:
+
+- Plots (in our case, the histogram) often lead to new questions.
+
+- Often, we must transform, summarise, or otherwise manipulate our data to answer a question.
+Sometimes this is straightforward, and sometimes it means diving deep into R code.
+
+- Sometimes the thing that we’re trying to do doesn’t work straight away. There is almost always a solution though 
+(and oftentimes more than one!). The more you work with R, the more problem-solving tricks you will learn.
+
+
+### Violin plots
+
+Density curves can also be used as alternatives to boxplots. In Exercise 2.17, you created boxplots to visualise price differences between diamonds of different cuts:
+
+```{r}
+ggplot(diamonds, aes(cut, price)) +
+      geom_boxplot()
+```
+
+Instead of using a boxplot, we can use a **violin plot**. Each group is represented by a “violin”, given by a rotated and duplicated density plot:
+
+```{r}
+ggplot(diamonds, aes(cut, price)) +
+      geom_violin()
+```
+
+Compared to boxplots, violin plots capture the entire distribution of the data rather than just a few numerical summaries. 
+If you like numerical summaries (and you should) you can add the median and the quartiles 
+(corresponding to the borders of the box in the boxplot) using the draw_quantiles argument:
+
+```{r}
+ggplot(diamonds, aes(cut, price)) +
+      geom_violin(draw_quantiles =  c(0.25, 0.5, 0.75))
+```
+
+
+
+
+**Exercise 4.4 **
+Using the first boxplot created above, i.e., ggplot(diamonds, aes(cut, price)) + geom_violin(), do the following:
+
+- Add some colour to the plot by giving different colours to each violin.
+
+```{r}
+ggplot(diamonds, aes(cut, price, fill = cut)) + 
+  geom_violin()
+```
+
+- Because the categories are shown along the x-axis, we don’t really need the legend. Remove it.
+
+```{r}
+ggplot(diamonds, aes(cut, price, fill = cut)) + 
+  geom_violin() +
+  theme(legend.position = "none")
+```
+
+- Both boxplots and violin plots are useful. Maybe we can have the best of both worlds? Add the corresponding boxplot inside each violin. 
+Hint: the width and alpha arguments in geom_boxplot are useful for creating a nice-looking figure here.
+
+```{r}
+ggplot(diamonds, aes(cut, price)) +
+      geom_violin(aes(fill = cut), width = 1.25) +
+      geom_boxplot(width = 0.1, alpha = 0.5) +
+      theme(legend.position = "none")
+```
+
+- Flip the coordinate system to create horizontal violins and boxes instead.
+
+```{r}
+ggplot(diamonds, aes(cut, price)) +
+      geom_violin(aes(fill = cut), width = 1.25) +
+      geom_boxplot(width = 0.1, alpha = 0.5) +
+      theme(legend.position = "none") +
+      coord_flip()
+```
+
+
+
+## 4.4 Combining multiple plots into a single graphic
+
+When exploring data with many variables, you’ll often want to make the same kind of plot (e.g., a violin plot) for several variables. 
+It will frequently make sense to place these side-by-side in the same plot window. The patchwork package extends ggplot2 by letting you do just that.
+
+Let’s install it: (at the beginning of the .Rmd)
+
+And use it:
+
+```{r}
+plot1 <- ggplot(diamonds, aes(cut, carat, fill = cut)) +
+            geom_violin() +
+            theme(legend.position = "none")
+
+plot2 <- ggplot(diamonds, aes(cut, price, fill = cut)) +
+            geom_violin() +
+            theme(legend.position = "none")
+
+library(patchwork)
+plot1 + plot2
+```
+
+You can also arrange the plots on multiple lines, with different numbers of plots on each line. 
+This is particularly useful if you are combining different types of plots in a single plot window. 
+In this case, you separate plots that are one the same line by | and mark the beginning of a new line with /:
+
+```{r}
+# Create two more plot objects:
+plot3 <- ggplot(diamonds, aes(cut, depth, fill = cut)) +
+            geom_violin() +
+            theme(legend.position = "none")
+
+plot4 <- ggplot(diamonds, aes(carat, fill = cut)) +
+            geom_density(alpha = 0.5) +
+            theme(legend.position = c(0.9, 0.6))
+
+# One row with three plots and one row with a single plot:
+(plot1 | plot2 | plot3) / plot4
+```
+
+
+```{r}
+# One column with three plots and one column with a single plot:
+(plot1 / plot2 / plot3) | plot4
+```
+
+
 
 
 
