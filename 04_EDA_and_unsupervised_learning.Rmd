@@ -25,13 +25,17 @@ if (!require(tidyverse)) install.packages('tidyverse', repos = c('https://tidyve
 library(tidyverse)
 
 #Additional themes for ggplot2
-if (!require(hrbrthemes)) install.packages('hrbrthemes', dependencies = T)
-install.packages("hrbrthemes")
-if (!require(ggthemes)) install.packages('ggthemes', dependencies = T)
-install.packages("ggthemes")
+#if (!require(hrbrthemes)) install.packages('hrbrthemes', dependencies = T)
+#install.packages("hrbrthemes")
+#if (!require(ggthemes)) install.packages('ggthemes', dependencies = T)
+#install.packages("ggthemes")
 
-if (!require(patchwork)) install.packages('patchwork', dependencies = T)
-library(patchwork)
+#if (!require(patchwork)) install.packages('patchwork', dependencies = T)
+#library(patchwork)
+
+# interactive version of plots? <- very heavy???
+#if (!require(plotly)) install.packages('plotly', dependencies = T)
+#library(plotly)
 
 ```
 
@@ -685,10 +689,281 @@ plot4 <- ggplot(diamonds, aes(carat, fill = cut)) +
 (plot1 / plot2 / plot3) | plot4
 ```
 
+## 4.5 Outliers and missing data
+
+### Detecting outliers
+
+Both boxplots and scatterplots are helpful in detecting deviating observations – often called outliers. 
+Outliers can be caused by measurement errors or errors in the data input but can also be interesting rare cases that can provide 
+valuable insights about the process that generated the data. 
+Either way, it is often of interest to detect outliers, for instance because that may influence the choice of what statistical tests to use.
+
+Let’s draw a scatterplot of diamond carats versus prices:
+
+```{r}
+ggplot(diamonds, aes(carat, price)) +
+      geom_point()
+```
+
+There are some outliers which we may want to study further. For instance, there is a surprisingly cheap 5-carat diamond, 
+and some cheap 3-carat diamonds. Note that it is not just the prices nor just the carats of these diamonds that make them outliers, 
+but the unusual combinations of prices and carats. But how can we identify those points?
+
+One option is to use the plotly package to make an interactive version of the plot, where we can hover interesting points to see more information about them. 
+Start by installing it:
+(Above)
+
+```{r}
+#install.packages("plotly")
+```
+
+To use **plotly** with a ggplot graphic, we store the graphic in a variable and then use it as input to the ggplotly function. 
+The resulting (interactive!) plot takes a little longer than usual to load. Try hovering the points:
+
+```{r}
+myPlot <- ggplot(diamonds, aes(carat, price)) +
+      geom_point()
+
+library(plotly)
+ggplotly(myPlot)
+```
+
+By default, plotly only shows the carat and price of each diamond. But we can add more information to the box by adding a text aesthetic:
 
 
+```{r}
+myPlot <- ggplot(diamonds, aes(carat, price, text = paste("Row:", rownames(diamonds)))) +
+          geom_point()
+
+ggplotly(myPlot)
+```
+
+We can now find the row numbers of the outliers visually, which is very useful when exploring data.
+
+**Exercise 4.5**
+The variables x and y in the diamonds data describe the length and width of the diamonds (in millimetres). 
+Use an interactive scatterplot to identify outliers in these variables. 
+Check prices, carat, and other information and think about if any of the outliers can be due to data errors.
+
+```{r}
+myPlot <- ggplot(diamonds, aes(x, y, text = paste("Row:", rownames(diamonds)))) +
+      geom_point()
+
+ggplotly(myPlot)
+```
+
+There are outliers along the y-axis on rows 24,068 and 49,190. 
+There are also some points for which x=0. Examples include rows 11,183 and 49,558. 
+It isn’t clear from the plot, but in total there are 8 such points, 7 of which have both x=0 and y=0.
+To view all such diamonds, you can use filter(diamonds, x==0). 
+These observations must be due to data errors, since diamonds can’t have 0 width.
+The high y-values also seem suspicious - carat is a measure of diamond weight, and if these diamonds really were 10 times longer than others 
+then we would probably expect them to have unusually high carat values as well (which they don’t).
 
 
+### Labelling outliers
 
+Interactive plots are great when exploring a dataset but are not always possible to use in other contexts, e.g., for printed reports and some presentations. 
+In these other cases, we can instead annotate the plot with notes about outliers. One way to do this is to use a geom called **geom_text**.
+
+For instance, we may want to add the row numbers of outliers to a plot. To do so, we use geom_text along with a condition that specifies for which points we should add annotations.
+
+...
+
+Here are some different examples of conditions used to plot text:
+
+```{r}
+# Using the row number (the 5 carat diamond is on row 27,416)
+ggplot(diamonds, aes(carat, price)) +
+      geom_point() +
+      geom_text(aes(label = ifelse(rownames(diamonds) == 27416,
+                                   rownames(diamonds), "")),
+                hjust = 1.1)
+# (hjust=1.1 shifts the text to the left of the point)
+```
+
+
+```{r}
+# Plot text next to all diamonds with carat>4
+ggplot(diamonds, aes(carat, price)) +
+     geom_point() +
+     geom_text(aes(label = ifelse(carat > 4, rownames(diamonds), "")),
+               hjust = 1.1)
+```
+
+
+```{r}
+# Plot text next to 3 carat diamonds with a price below 7500
+ggplot(diamonds, aes(carat, price)) +
+      geom_point() +
+      geom_text(aes(label = ifelse(carat == 3 & price < 7500,
+                                   rownames(diamonds), "")),
+                hjust = 1.1)
+```
+
+**Exercise 4.6**
+Create a static (i.e., non-interactive) scatterplot of x versus y from the diamonds data. 
+Label the diamonds with suspiciously high y-values.
+
+```{r}
+ggplot(diamonds, aes(x, y)) +
+      geom_point() +
+      geom_text(aes(label = ifelse(y > 20, rownames(diamonds), "")),
+                hjust = 1.1)
+```
+
+### Missing data
+
+Like many datasets, the mammal sleep data msleep contains a lot of missing values, represented by NA (Not Available) in R. 
+This becomes evident when we have a look at the data:
+
+```{r}
+library(ggplot2)
+View(msleep)
+```
+
+We can check if a particular observation is missing using the is.na function:
+
+```{r}
+is.na(msleep$sleep_rem[4])
+is.na(msleep$sleep_rem)
+```
+
+
+Total NAs in the dataset by column:
+
+```{r}
+colSums(is.na(msleep))
+```
+
+Total NAs in the dataset:
+
+```{r}
+sum(is.na(msleep))
+```
+
+Total NAs in the dataset in one column:
+
+```{r}
+sum(is.na(msleep$sleep_rem))
+```
+
+
+You’ll notice that ggplot2 prints a warning in the Console when you create a plot with missing data:
+
+```{r}
+ggplot(msleep, aes(brainwt, sleep_total)) +
+      geom_point() +
+      scale_x_log10()
+```
+
+Sometimes, data are missing simply because the information is not yet available ...
+
+It is of interest to see if there are any differences in non-missing variables between subjects that have missing data and subjects that don’t.
+
+In msleep, all animals have recorded values for sleep_total and bodywt. To check if the animals that have missing brainwt values differ from the others,
+we can plot them in a different colour in a scatterplot:
+
+```{r}
+ggplot(msleep, aes(bodywt, sleep_total, colour = is.na(brainwt))) +
+      geom_point() +
+      scale_x_log10()
+```
+
+(If is.na(brainwt) is TRUE, then the brain weight is missing in the dataset.) 
+
+In this case, there are no apparent differences between the animals with missing data and those without.
+
+**Exercise 4.7**
+Create a version of the diamonds dataset where the x value is missing for all diamonds with x>9. 
+Make a scatterplot of carat versus price, in which points where the x value is missing are plotted in a different colour. 
+How would you interpret this plot?
+
+```{r}
+# Create a copy of diamonds, then replace x-values greater than 9
+# with NA:
+diamonds2 <- diamonds
+diamonds2$x[diamonds2$x > 9] <- NA
+
+## Create the scatterplot
+ggplot(diamonds2, aes(carat, price, colour = is.na(x))) +
+      geom_point()
+```
+
+In this plot, we see that virtually all high carat diamonds have missing x values. 
+This seems to indicate that there is a systematic pattern to the missing data (which of course is correct in this case!), 
+and we should proceed with any analyses of x with caution.
+
+
+### Exploring data
+
+The nycflights13 package contains data about flights to and from three airports in New York, USA, in 2013. 
+As a summary exercise, we will study a subset of these, namely all flights departing from New York on 1 January of that year:
+
+```{r}
+install.packages("nycflights13")
+library(nycflights13)
+
+flights2 <- flights[flights$month == 1 & flights$day == 1,]
+```
+
+**Exercise 4.8**
+Explore the flights2 dataset, focusing on delays and the amount of time spent in the air. Are there any differences between the different carriers? Are there missing data? Are there any outliers?
+
+The code below is an example of what your analysis can look like, with some remarks as comments:
+
+```{r}
+# Investigate missing data
+colSums(is.na(flights2))
+# Not too much missing data in this dataset!
+
+View(flights2[is.na(flights2$air_time),])
+# Flights with missing data tend to have several missing variables.
+```
+
+
+```{r}
+# Ridge plots to compare different carriers (boxplots, facetted
+# histograms and violin plots could also be used)
+library(ggridges)
+ggplot(flights2, aes(arr_delay, carrier, fill = carrier)) +
+      geom_density_ridges() +
+      theme(legend.position = "none") +
+      xlim(-50, 250)
+# Some airlines (e.g. EV) appear to have a larger spread than others
+```
+
+
+```{r}
+ggplot(flights2, aes(dep_delay, carrier, fill = carrier)) +
+      geom_density_ridges() +
+      theme(legend.position = "none") +
+      xlim(-15, 100)
+# Some airlines (e.g. EV) appear to have a larger spread others
+```
+
+
+```{r}
+ggplot(flights2, aes(air_time, carrier, fill = carrier)) +
+      geom_density_ridges() +
+      theme(legend.position = "none")
+# VX only do long-distance flights, whereas MQ, FL and 9E only do
+# shorter flights
+```
+
+```{r}
+# Make scatterplots and label outliers with flight numbers
+ggplot(flights2, aes(dep_delay, arr_delay, colour = carrier)) +
+      geom_point() +
+      geom_text(aes(label = ifelse(arr_delay > 300,
+                            paste("Flight", flight), "")),
+                vjust = 1.2, hjust = 1)
+
+ggplot(flights2, aes(air_time, arr_delay, colour = carrier)) +
+      geom_point() +
+      geom_text(aes(label = ifelse(air_time > 400 | arr_delay > 300,
+                                   paste("Flight", flight), "")),
+                vjust = 1.2, hjust = 1)
+```
 
 
