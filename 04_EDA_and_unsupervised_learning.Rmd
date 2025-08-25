@@ -967,3 +967,96 @@ ggplot(flights2, aes(air_time, arr_delay, colour = carrier)) +
 ```
 
 
+## 4.6 Trends in scatterplots
+
+Let’s return to a familiar example: the relationship between animal brain size and sleep times:
+
+```{r}
+ggplot(msleep, aes(brainwt, sleep_total)) + 
+      geom_point() +
+      labs(x = "Brain weight (logarithmic scale)",
+           y = "Total sleep time") +
+      scale_x_log10()
+```
+
+There appears to be a decreasing trend in the plot. 
+To aid the eye, we can add a smoothed line by adding a new geom, **geom_smooth**, to the figure:
+
+```{r}
+ggplot(msleep, aes(brainwt, sleep_total)) + 
+      geom_point() +
+      geom_smooth() +
+      labs(x = "Brain weight (logarithmic scale)",
+           y = "Total sleep time") +
+      scale_x_log10()
+```
+
+This technique is useful for bivariate data as well as for time series, which we’ll delve into next.
+
+By default, geom_smooth adds a line fitted using either LOESS25 or GAM26, as well as the corresponding 95% confidence interval
+describing the uncertainty in the estimate. There are several useful arguments that can be used with geom_smooth. 
+You will explore some of these in the exercise below.
+
+
+
+**Exercise 4.9**
+Check the documentation for geom_smooth. Starting with the plot of brain weight vs. sleep time created above, do the following:
+
+- Decrease the degree of smoothing for the LOESS line that was fitted to the data. What is better in this case, more or less smoothing?
+(Loess short for Local Regression)
+
+To decrease the smoothness of the line, use the **span** argument in geom_smooth. 
+The default is geom_smooth(span = 0.75). Decreasing this values yields a very different fit:
+
+```{r}
+ggplot(msleep, aes(brainwt, sleep_total)) + 
+      geom_point() +
+      geom_smooth(span = 0.25) +
+      labs(x = "Brain weight (logarithmic scale)",
+           y = "Total sleep time") +
+      scale_x_log10()
+```
+
+More smoothing is probably preferable in this case. The relationship appears to be fairly weak, and appears to be roughly linear.
+
+- Fit a straight line to the data instead of a non-linear LOESS line.
+
+We can use the method argument in geom_smooth to fit a straight line using lm instead of LOESS:
+
+```{r}
+ggplot(msleep, aes(brainwt, sleep_total)) + 
+      geom_point() +
+      geom_smooth(method = "lm") +
+      labs(x = "Brain weight (logarithmic scale)",
+           y = "Total sleep time") +
+      scale_x_log10()
+```
+
+- Remove the confidence interval from the plot.
+
+```{r}
+ggplot(msleep, aes(brainwt, sleep_total)) + 
+      geom_point() +
+      geom_smooth(method = "lm", se = FALSE) +
+      labs(x = "Brain weight (logarithmic scale)",
+           y = "Total sleep time") +
+      scale_x_log10()
+```
+
+
+- Change the colour of the fitted line to red.
+
+```{r}
+ggplot(msleep, aes(brainwt, sleep_total)) + 
+      geom_point() +
+      geom_smooth(method = "lm", se = FALSE, colour = "red") +
+      labs(x = "Brain weight (logarithmic scale)",
+           y = "Total sleep time") +
+      scale_x_log10()
+```
+
+
+
+
+
+
