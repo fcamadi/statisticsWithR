@@ -1,0 +1,189 @@
+---
+title: "04_EDA_and_unsupervised_learning_2"
+author: "Fran Camacho"
+date: "2025-08-25"
+output: word_document
+---
+
+# 4 - Exploratory data analysis and unsupervised learning
+
+https://modernstatisticswithr.com/eda.html#tsplots
+
+```{r}
+#Libraries
+
+#https://tidyverse.r-universe.dev/tidyverse
+if (!require(tidyverse)) install.packages('tidyverse', repos = c('https://tidyverse.r-universe.dev', 'https://cloud.r-project.org'))
+library(tidyverse)
+
+```
+
+
+## 4.7 Exploring time series
+
+Before we have a look at time series, you should install four useful packages: **forecast, nlme, fma and fpp2**. 
+The first contains useful functions for plotting time series data, and the latter three contain datasets that we’ll use.
+
+```{r}
+#  useful functions for plotting time series data
+if (!require(forecast)) install.packages('forecast', dependencies = T)
+library(forecast)
+
+if (!require(nlme)) install.packages('nlme', dependencies = T)
+library(nlme)
+
+if (!require(fma)) install.packages('fma', dependencies = T)
+library(fma)
+
+if (!require(fpp2)) install.packages('fpp2', dependencies = T)
+library(fpp2)
+```
+
+The a10 dataset contains information about the monthly anti-diabetic drug sales in Australia from July 1991 to June 2008.
+By checking its structure, we see that it is saved as a time series object:
+
+```{r}
+library(fpp2)
+str(a10)
+```
+
+ggplot2 requires that data is saved as a data frame in order for it to be plotted.
+In order to plot the time series, we could first convert it to a data frame and then plot each point using geom_points:
+
+```{r}
+a10_df <- data.frame(time = time(a10), sales = a10)
+
+ggplot(a10_df, aes(time, sales)) +
+      geom_point()
+```
+
+It is however usually preferable to plot time series using lines instead of points. This is done using a different geom: geom_line:
+
+```{r}
+ggplot(a10_df, aes(time, sales)) +
+      geom_line()
+```
+
+Having to convert the time series object to a data frame is a little awkward. Luckily, there is a way around this. 
+ggplot2 offers a function called autoplot that automatically draws an appropriate plot for certain types of data. 
+forecast extends this function to time series objects:
+
+```{r}
+library(forecast)
+
+autoplot(a10)
+```
+
+We can still add other geoms, axis labels, and other things just as before. 
+autoplot has simply replaced the ggplot(data, aes()) + geom part that would be the first two rows of the ggplot2 figure 
+and has implicitly converted the data to a data frame.
+
+
+
+
+**Exercise 4.10**
+Using the autoplot(a10) figure, do the following:
+
+- Add a smoothed line describing the trend in the data. Make sure that it is smooth enough not to capture the seasonal variation in the data.
+
+```{r}
+library(forecast)
+
+autoplot(a10) +
+  geom_smooth(span = 0.75)
+```
+
+- Change the label of the x-axis to “Year” and the label of the y-axis to “Sales ($ million)”.
+
+```{r}
+autoplot(a10) +
+      geom_smooth() +
+      labs(x = "Year",
+           y = "Sales ($ million)")
+```
+
+- Check the documentation for the ggtitle function. What does it do? Use it with the figure.
+
+- Change the colour of the time series line to red.
+
+```{r}
+autoplot(a10, colour = "red") +
+      geom_smooth() +
+      labs(x = "Year",
+           y = "Sales ($ million)") +
+      ggtitle("Anti-diabetic drug sales in Australia")
+```
+
+
+###  Annotations and reference lines
+
+We sometimes wish to add text or symbols to plots, for instance to highlight interesting observations. 
+Consider the following time series plot of daily morning gold prices, based on the **gold** data from the forecast package:
+
+```{r}
+library(forecast)
+
+autoplot(gold)
+```
+
+There is a sharp spike a few weeks before day 800, which is due to an incorrect value in the data series. 
+We’d like to add a note about that to the plot. First, we wish to find out on which day the spike appears. 
+This can be done by checking the data manually or using some code:
+
+
+```{r}
+spike_date <- which.max(gold)
+
+spike_date
+```
+
+To add a circle around that point, we add a call to annotate to the plot:
+
+```{r}
+autoplot(gold) +
+      annotate(geom = "point", x = spike_date, y = gold[spike_date], 
+               size = 5, shape = 21,
+               colour = "red",
+               fill = "transparent")
+```
+
+**annotate** can be used to annotate the plot with both geometrical objects and text (and can therefore be used as an alternative to geom_text).
+
+**Exercise 4.11**
+Using the figure created above and the documentation for annotate, do the following:
+
+- Add the text “Incorrect value” next to the circle.
+
+```{r}
+autoplot(gold) +
+      annotate(geom = "point", x = spike_date, y = gold[spike_date], 
+               size = 5, shape = 21, colour = "red",
+               fill = "transparent") +
+      annotate(geom = "text", x = spike_date + 120,   # <- geom = "text"
+               y = gold[spike_date], 
+               label = "Incorrect value!")
+```
+
+
+- Create a second plot where the incorrect value has been removed.
+
+We can remove the erroneous value by replacing it with NA in the time series:
+
+```{r}
+gold[spike_date] <- NA
+
+autoplot(gold)
+```
+
+- Read the documentation for the geom **geom_hline**. Use it to add a red reference line to the plot, at y=400
+
+```{r}
+autoplot(gold) +
+      geom_hline(yintercept = 400, colour = "red") +
+      geom_hline(yintercept = 350, colour = "green")  # we can add more than one
+```
+
+
+
+
+
