@@ -183,7 +183,391 @@ autoplot(gold) +
       geom_hline(yintercept = 350, colour = "green")  # we can add more than one
 ```
 
+###  Longitudinal data
 
+Multiple time series with identical time points, known as longitudinal data or panel data, are common in many fields. 
+One example of this is given by the elecdaily time series from the fpp2 package, which contains information
+about electricity demand in Victoria, Australia during 2014. As with a single time series, we can plot these data using autoplot:
+
+```{r}
+library(fpp2)
+
+autoplot(elecdaily)
+```
+
+In this case, it is probably a good idea to facet the data, i.e., to plot each series in a different figure:
+
+```{r}
+autoplot(elecdaily, facets = TRUE)
+```
+
+
+
+**Exercise 4.12**
+Make the following changes to the autoplot(elecdaily, facets = TRUE):
+
+- Remove the WorkDay variable from the plot (it describes whether or not a given date is a workday, and while it is useful for modelling purposes, we do not wish to include it in our figure).
+
+```{r}
+autoplot(elecdaily[, c("Demand", "Temperature")], facets = TRUE)
+```
+
+- Add smoothed trend lines to the time series plots.
+
+```{r}
+autoplot(elecdaily[, c("Demand", "Temperature")], facets = TRUE) +
+      geom_smooth() # +
+     # labs(y = NULL)
+```
+
+
+### Path plots
+
+Another option for plotting multiple time series is path plots.
+A path plot is a scatterplot where the points are connected with lines in the order they appear in the data 
+(which, for time series data, should correspond to time). The lines and points can be coloured to represent time.
+
+To make a path plot of Temperature versus Demand for the elecdaily data, we first convert the time series object 
+to a data frame and create a scatterplot:
+
+```{r}
+library(fpp2)
+
+ggplot(as.data.frame(elecdaily), aes(Temperature, Demand)) +
+      geom_point()
+```
+
+Next, we connect the points by lines using the geom_path geom:
+
+```{r}
+ggplot(as.data.frame(elecdaily), aes(Temperature, Demand)) +
+      geom_point() +
+      geom_path()
+```
+
+The resulting figure is quite messy. Using colour to indicate the passing of time helps a little.
+For this, we need to add the day of the year to the data frame. To get the values right, we use nrow,
+which gives us the number of rows in the data frame.
+
+```{r}
+elecdaily2 <- as.data.frame(elecdaily)
+elecdaily2$day <- 1:nrow(elecdaily2)
+      
+ggplot(elecdaily2, aes(Temperature, Demand, colour = day)) +
+      geom_point() +
+      geom_path()
+```
+
+"It becomes clear from the plot that temperatures were the highest at the beginning of the year and lower in the winter months (July-August)."
+(July and August "winter"? In the south hemisphere, right?)
+
+
+
+
+**Exercise 4.13**
+Make the following changes to the plot you created above:
+
+- Decrease the size of the points.
+
+```{r}
+ggplot(elecdaily2, aes(Temperature, Demand, colour = day)) +
+      geom_point(size = 0.5) +
+      geom_path()
+```
+
+
+- Add text annotations showing the dates of the highest and lowest temperatures, next to the corresponding points in the figure.
+
+To add annotations, we use annotate and some code to find the days of the lowest and highest temperatures:
+
+```{r}
+## Lowest temperature
+lowest <- which.min(elecdaily2$Temperature)
+
+## Highest temperature
+highest <- which.max(elecdaily2$Temperature)
+
+## We shift the y-values of the text so that it appears above
+# the points
+ggplot(elecdaily2, aes(Temperature, Demand, colour = day)) +
+      geom_point(size = 0.5) +
+      geom_path() +
+      annotate(geom = "text", x = elecdaily2$Temperature[lowest],
+               y = elecdaily2$Demand[lowest] + 4, 
+               label = elecdaily2$day[lowest]) +
+      annotate(geom = "text", x = elecdaily2$Temperature[highest],
+               y = elecdaily2$Demand[highest] + 4, 
+               label = elecdaily2$day[highest])
+```
+
+### Spaghetti plots
+
+In cases where we’ve observed multiple subjects over time, we often wish to visualise their individual time series together
+using so-called spaghetti plots. With ggplot2 this is done using the geom_line geom. 
+To illustrate this, we use the Oxboys data from the nlme package, showing the heights of 26 boys over time.
+
+```{r}
+library(nlme)
+
+str(Oxboys)
+```
+
+```{r}
+head(Oxboys)
+```
+
+
+
+```{r}
+ggplot(Oxboys, aes(age, height, group = Subject)) + 
+      geom_point() + 
+      geom_line()
+```
+
+The first two aes arguments specify the x- and y-axes, and the third specifies that there should be one line per subject 
+(i.e., per boy) rather than a single line interpolating all points. The latter would be a rather useless figure that looks like this:
+
+```{r}
+ggplot(Oxboys, aes(age, height)) + 
+      geom_point() + 
+      geom_line() +
+      ggtitle("A terrible plot")
+```
+
+Returning to the original plot, if we wish to be able to identify which time series corresponds to which boy,
+we can add a colour aesthetic:
+
+```{r}
+ggplot(Oxboys, aes(age, height, group = Subject, colour = Subject)) + 
+      geom_point() + 
+      geom_line()
+```
+
+Note that the boys are ordered by height, rather than subject number, in the legend.
+
+Now, imagine that we wish to add a trend line describing the general growth trend for all boys. 
+The growth appears approximately linear, so it seems sensible to use geom_smooth(method = "lm") to add the trend:
+
+```{r}
+ggplot(Oxboys, aes(age, height, group = Subject, colour = Subject)) + 
+      geom_point() + 
+      geom_line() +
+      geom_smooth(method = "lm", colour = "red", se = FALSE)
+```
+
+Unfortunately, because we have specified in the aesthetics that the data should be grouped by Subject,
+geom_smooth produces one trend line for each boy. The “problem” is that when we specify an aesthetic in the ggplot call,
+it is used for all geoms.
+
+**Exercise 4.14**
+Figure out how to produce a spaghetti plot of the Oxboys data with a single red trend line based on the data from all 26 boys.
+
+... specify aes(group) for a particular geom only as follows:
+
+```{r}
+ggplot(Oxboys, aes(age, height, colour = Subject)) + 
+      geom_point() + 
+      geom_line(aes(group = Subject)) +
+      geom_smooth(method = "lm", colour = "red", se = FALSE)
+```
+
+
+### Seasonal plots and decompositions
+
+The forecast package includes a number of useful functions when working with time series.
+One of them is **ggseasonplot**, which allows us to easily create a spaghetti plot of different periods of a time series with seasonality, 
+i.e., with patterns that repeat seasonally over time.
+It works similar to the autoplot function, in that it replaces the ggplot(data, aes) + geom part of the code.
+
+```{r}
+library(forecast)
+library(fpp2)
+
+ggseasonplot(a10)
+```
+
+This function is very useful when visually inspecting seasonal patterns.
+
+The year.labels and year.labels.left arguments remove the legend in favour of putting the years at the end and beginning of the lines:
+
+```{r}
+ggseasonplot(a10, year.labels = TRUE, year.labels.left = TRUE)
+```
+
+As always, we can add more things to our plot if we like:
+
+```{r}
+ggseasonplot(a10, year.labels = TRUE, year.labels.left = TRUE) +
+      labs(y = "Sales ($ million)") +
+      ggtitle("Seasonal plot of anti-diabetic drug sales")
+```
+
+When working with seasonal time series, it is common to decompose the series into a seasonal component,
+a trend component, and a remainder.
+In R, this is typically done using the **stl** function, which uses repeated LOESS smoothing to decompose the series. 
+There is an autoplot function for stl objects:
+
+```{r}
+autoplot(stl(a10, s.window = 365))
+```
+
+This plot can too be manipulated in the same way as other ggplot objects. You can access the different parts of the decomposition as follows:
+
+```{r}
+stl(a10, s.window = 365)$time.series[,"seasonal"]
+##stl(a10, s.window = 365)$time.series[,"trend"]
+##stl(a10, s.window = 365)$time.series[,"remainder"]
+```
+
+
+**Exercise 4.15**
+Investigate the writing dataset from the fma package graphically. 
+Make a time series plot with a smoothed trend line, a seasonal plot and an stl-decomposition plot.
+Add appropriate plot titles and labels to the axes. Can you see any interesting patterns?
+
+```{r}
+library(fma)
+
+# Time series plot
+autoplot(writing) +
+      geom_smooth() +
+      labs(y = "Sales (francs)") +
+      ggtitle("Sales of printing and writing paper")
+```
+
+```{r}
+# Seasonal plot
+ggseasonplot(writing, year.labels = TRUE, year.labels.left = TRUE) +
+      labs(y = "Sales (francs)") +
+      ggtitle("Seasonal plot of sales of printing and writing paper")
+# There is a huge dip in sales in August, when many French offices are
+# closed due to holidays.
+```
+
+```{r}
+# stl-decomposition
+autoplot(stl(writing, s.window = 365)) +
+      ggtitle("Seasonal decomposition of paper sales time series")
+```
+
+### Detecting changepoints
+
+The **changepoint** package contains a number of methods for detecting changepoints in time series, i.e., 
+time points at which either the mean or the variance of the series changes. 
+Finding changepoints can be important for detecting changes in the process underlying the time series.
+
+The **ggfortify** package extends ggplot2 by adding autoplot functions for a variety of tools, including those in changepoint.
+Let’s install the packages:
+
+```{r}
+#  useful functions for detecting changepoints in time series
+if (!require(changepoint)) install.packages('changepoint', dependencies = T)
+library(changepoint)
+
+#  extends ggplot2
+if (!require(ggfortify)) install.packages('ggfortify', dependencies = T)
+library(ggfortify)
+```
+
+
+We can now look at some examples with the anti-diabetic drug sales data:
+
+```{r}
+library(forecast)
+library(fpp2)
+library(changepoint)
+library(ggfortify)
+
+# Plot the time series:
+autoplot(a10)
+```
+
+
+```{r}
+# Remove the seasonal part and plot the series again:
+a10_ns <- a10 - stl(a10, s.window = 365)$time.series[,"seasonal"]
+autoplot(a10_ns)
+```
+
+
+```{r}
+# Plot points where there are changes in the mean:
+autoplot(cpt.mean(a10_ns))
+```
+
+
+```{r}
+# Choosing a different method for finding changepoints
+# changes the result:
+autoplot(cpt.mean(a10_ns, method = "BinSeg"))
+```
+
+
+```{r}
+# Plot points where there are changes in the variance:
+autoplot(cpt.var(a10_ns))
+```
+
+
+```{r}
+# Plot points where there are changes in either the mean or
+# the variance:
+autoplot(cpt.meanvar(a10_ns))
+```
+
+As you can see, the different methods from changepoint all yield different results. 
+
+The results for changes in the mean are a bit dubious – which isn’t all that strange as we are using a method that looks for jumps in the mean 
+on a time series where the increase actually is more or less continuous. 
+
+The changepoint for the variance looks more reliable – there is a clear change toward the end of the series where the sales become more volatile. 
+We won’t go into details about the different methods here but mention that the documentation at ?cpt.mean, ?cpt.var, and ?cpt.meanvar contains
+descriptions of and references for the available methods.
+
+**Exercise 4.16**
+Are there any changepoints for variance in the Demand time series in elecdaily? 
+Can you explain why the behaviour of the series changes?
+
+```{r}
+library(forecast)
+library(fpp2)
+library(changepoint)
+library(ggfortify)
+
+# Plot the time series:
+autoplot(elecdaily[,"Demand"])
+
+# Plot points where there are changes in the variance:
+autoplot(cpt.var(elecdaily[,"Demand"]))
+```
+"The variance is greater in the beginning of the year, and then appears to be more or less constant. Perhaps this can be explained by temperature?"
+
+```{r}
+# Plot the time series:
+autoplot(elecdaily[,"Temperature"])
+```
+
+"We see that the high-variance period coincides with peaks and large oscillations in temperature, which would cause the energy demand 
+to increase and decrease more than usual, making the variance greater."
+
+
+###  Interactive time series plots
+
+
+The plotly packages can be used to create interactive time series plots. As before, you create a ggplot2 object as usual, 
+assigning it to a variable and then call the ggplotly function. Here is an example with the elecdaily data:
+
+```{r}
+library(plotly)
+library(fpp2)
+myPlot <- autoplot(elecdaily[,"Demand"])
+
+ggplotly(myPlot)
+```
+
+When you hover the mouse pointer over a point, a box appears, displaying information about that data point.
+Unfortunately, the date formatting isn’t great in this example – dates are shown as weeks with decimal points.
+We’ll see how to fix this in Section 5.6.
 
 
 
