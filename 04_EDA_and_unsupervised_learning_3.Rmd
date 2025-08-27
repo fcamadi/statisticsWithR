@@ -1,0 +1,153 @@
+---
+title: "04_EDA_and_unsupervised_learning_3"
+author: "Fran Camacho"
+date: "2025-08-27"
+output: word_document
+---
+
+# 4 - Exploratory data analysis and unsupervised learning
+
+https://modernstatisticswithr.com/eda.html#polar
+
+```{r}
+#Libraries
+
+#https://tidyverse.r-universe.dev/tidyverse
+if (!require(tidyverse)) install.packages('tidyverse', repos = c('https://tidyverse.r-universe.dev', 'https://cloud.r-project.org'))
+library(tidyverse)
+
+```
+
+
+## 4.8 Using polar coordinates
+
+Most plots are made using Cartesian coordinate systems, in which the axes are orthogonal to each other and values are placed
+in an even spacing along each axis. In some cases, non-linear axes (e.g., log-transformed) are used instead, as we have already seen.
+
+Another option is to use a polar coordinate system, in which positions are specified using an angle and a (radial) distance from the origin.
+Here is an example of a polar scatterplot, where sleep_rem is represented by the angle and sleep_total by the radial distance:
+
+```{r}
+ggplot(msleep, aes(sleep_rem, sleep_total, colour = vore)) + 
+      geom_point() +
+      labs(x = "REM sleep (circular axis)",
+           y = "Total sleep time (radial axis)") +
+      coord_polar()
+```
+
+### Visualising periodic data
+
+Polar coordinates are particularly useful when the data is periodic. Consider for instance the following dataset, 
+describing monthly weather averages for Cape Town, South Africa:
+
+```{r}
+Cape_Town_weather <- data.frame(
+  Month = 1:12,
+  Temp_C = c(22, 23, 21, 18, 16, 13, 13, 13, 14, 16, 18, 20),
+  Rain_mm = c(20, 20, 30, 50, 70, 90, 100, 70, 50, 40, 20, 20),
+  Sun_h = c(11, 10, 9, 7, 6, 6, 5, 6, 7, 9, 10, 11)
+  )
+```
+
+We can visualise the monthly average temperature using lines in a Cartesian coordinate system:
+
+```{r}
+ggplot(Cape_Town_weather, aes(Month, Temp_C)) +
+      geom_line()
+```
+
+```{r}
+## To show both variables at the same time, they must be put in aes withing geom_line
+ggplot(Cape_Town_weather, aes(x = Month)) +
+  geom_line(aes(y = Temp_C, color = "Temperature")) +
+  geom_line(aes(y = Rain_mm, color = "Rainfall")) +
+  theme_minimal()
+```
+
+What this plot doesn’t show is that the 12th month and the 1st month actually are consecutive months.
+If we instead use polar coordinates, this becomes clearer:
+
+```{r}
+ggplot(Cape_Town_weather, aes(Month, Temp_C)) +
+      geom_line() +
+      coord_polar()
+```
+
+To improve the presentation, we can change the scale of the x-axis (i.e., the circular axis) so that January and December aren’t plotted at the same angle:
+
+```{r}
+ggplot(Cape_Town_weather, aes(Month, Temp_C)) +
+      geom_line() +
+      coord_polar() +
+      xlim(0, 12)
+```
+
+**Exercise 4.17**
+In the plot that we just created, the last and first month of the year aren’t connected. 
+You can fix manually this by adding a cleverly designed faux data point to Cape_Town_weather. How?
+
+"By adding a copy of the observation for month 12, with the Month value replaced by 0, we can connect the endpoints to form a continuous curve:"
+
+```{r}
+Cape_Town_weather[13,] <- Cape_Town_weather[12,]
+Cape_Town_weather$Month[13] <- 0
+
+ggplot(Cape_Town_weather, aes(Month, Temp_C)) +
+      geom_line() +
+      coord_polar() +
+      xlim(0, 12)
+```
+
+
+### Pie charts
+
+Consider the stacked bar chart that we plotted in Section 2.8:
+
+```{r}
+ggplot(msleep, aes(factor(1), fill = vore)) +
+      geom_bar()
+```
+
+What would happen if we plotted this figure in a polar coordinate system instead? 
+If we map the height of the bars (the y-axis of the Cartesian coordinate system) to both the angle and the radial distance, we end up with a pie chart:
+
+```{r}
+ggplot(msleep, aes(factor(1), fill = vore)) +
+      geom_bar() +
+      coord_polar(theta = "y")
+```
+
+There are many arguments against using pie charts for visualisations. Most boil down to the fact that the same information 
+is easier to interpret when conveyed as a bar chart. This is at least partially due to the fact that most people are more 
+used to reading plots in Cartesian coordinates than in polar coordinates.
+
+If we make a similar transformation of a grouped bar chart, we get a different type of pie chart, in which the height 
+of the bars is mapped to both the angle and the radial distance:
+
+Cartesian bar chart:
+
+```{r}
+# Cartesian bar chart:
+ggplot(msleep, aes(vore, fill = vore)) +
+      geom_bar() +
+      theme(legend.position = "none")
+```
+
+Polar bar chart:
+
+```{r}
+# Polar bar chart:
+ggplot(msleep, aes(vore, fill = vore)) +
+      geom_bar() +
+      coord_polar() +
+      theme(legend.position = "none")
+```
+
+
+
+
+
+
+
+
+
