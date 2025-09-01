@@ -1,0 +1,247 @@
+---
+title: "04_EDA_and_unsupervised_learning_4"
+author: "Fran Camacho"
+date: "2025-08-30"
+output: word_document
+---
+
+# 4 - Exploratory data analysis and unsupervised learning
+
+https://modernstatisticswithr.com/eda.html#pca
+
+```{r}
+#Libraries
+
+#https://tidyverse.r-universe.dev/tidyverse
+if (!require(tidyverse)) install.packages('tidyverse', repos = c('https://tidyverse.r-universe.dev', 'https://cloud.r-project.org'))
+library(tidyverse)
+
+```
+
+
+## 4.11 Principal component analysis
+
+If there are many variables in your data, it can often be difficult to detect differences between groups or create a perspicuous visualisation.
+A useful tool in this context is **principal component analysis (PCA)**, which can reduce high-dimensional data to a lower number of variables 
+that can be visualised in one or two scatterplots. 
+The idea is to compute new variables, called principal components, that are linear combinations of the original variables. 
+These are constructed with two goals in mind: the principal components should capture as much of the variance in the data as possible, 
+and each principal component should be uncorrelated to the other components.
+You can then plot the principal components to get a low-dimensional representation of your data, which hopefully captures most of its variation.
+
+By design, the number of principal components computed are as many as the original number of variables, with the first having the largest variance, 
+the second having the second largest variance, and so on. We hope that it will suffice to use just the first few of these 
+to represent most of the variation in the data, but this is not guaranteed. 
+Principal component analysis is more likely to yield a useful result if several variables are correlated.
+
+
+### Running a principal component analysis
+
+To illustrate the principles of PCA, we will use a dataset from Charytanowicz et al. (2010), containing measurements on wheat kernels
+for three varieties of wheat. A description of the variables is available at:
+
+http://archive.ics.uci.edu/ml/datasets/seeds
+
+We are interested to find out if these measurements can be used to distinguish between the varieties. 
+The data is stored in a .txt file, which we import using read.table (which works just like read.csv, but is tailored to text files)
+and convert the Variety column to a categorical factor variable (which you’ll learn more about in Section 5.4):
+
+```{r}
+# The data is downloaded from the UCI Machine Learning Repository:
+# http://archive.ics.uci.edu/ml/datasets/seeds
+
+seeds <- read.table("https://tinyurl.com/seedsdata",
+        col.names = c("Area", "Perimeter", "Compactness", "Kernel_length", "Kernel_width", "Asymmetry",
+         "Groove_length", "Variety"))
+
+seeds$Variety <- factor(seeds$Variety)
+```
+
+
+If we make a scatterplot matrix of all variables, it becomes evident that there are differences between the varieties,
+but that no single pair of variables is enough to separate them:
+
+```{r fig.width=12, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(GGally)
+
+ggpairs(seeds[, -8], aes(colour = seeds$Variety, alpha = 0.2))
+```
+
+Moreover, for presentation purposes, the amount of information in the scatterplot matrix is a bit overwhelming. 
+It would be nice to be able to present the data in a single scatterplot, without losing too much information. We’ll therefore compute the principal components 
+using the **prcomp** function. It is usually recommended that PCA is performed using standardised data, i.e., using data that has been scaled 
+to have mean 0 and standard deviation 1. The reason for this is that it puts all variables on the same scale. 
+If we don’t standardise our data, then variables with a high variance will completely dominate the principal components.
+...
+
+We don’t have to standardise the data ourselves, but can let prcomp do that for us using the arguments **center = TRUE** (to get mean 0) and 
+**scale. = TRUE** (to get standard deviation 1):
+
+```{r}
+# Compute principal components:
+pca <- prcomp(seeds[,-8], center = TRUE, scale. = TRUE)
+```
+
+To see the loadings of the components, i.e., how much each variable contributes to the components, simply type the name of the object prcomp created:
+
+```{r}
+pca
+```
+
+The first principal component is more or less a weighted average of all variables but has stronger weights on Area, Perimeter, Kernel_length, 
+Kernel_width, and Groove_length, all of which are measures of size. We can therefore interpret it as a size variable.
+The second component has higher loadings for Compactness and Asymmetry, meaning that it mainly measures those shape features. 
+In Exercise 4.26 you’ll see how the loadings can be visualised in a biplot.
+
+
+### Choosing the number of components
+
+To see how much of the variance each component represents, use summary:
+
+```{r}
+summary(pca)
+```
+
+The first principal component accounts for 71.87% of the variance, and the first three combined account for 98.67%.
+
+To visualise this, we can draw a scree plot, which shows the variance of each principal component – the total variance
+of the data is the sum of the variances of the principal components:
+
+```{r}
+screeplot(pca, type = "lines")
+```
+
+We can use this to choose how many principal components to use when visualising or summarising our data. 
+In that case, we look for an “elbow”, i.e., a bend in the curve after which increasing the number of components doesn’t increase 
+the amount of variance explained much. In this case, we see an “elbow” somewhere between two and four components.
+
+### Plotting the results
+
+We can access the values of the principal components using pca$x. Let’s check that the first two components really are uncorrelated:
+
+```{r}
+cor(pca$x[,1], pca$x[,2])
+```
+
+In this case, almost all of the variance is summarised by the first two or three principal components. It appears that we have successfully 
+reduced the data from seven variables to between two and three, which should make visualisation much easier. 
+The **ggfortify** package contains an autoplot function for PCA objects that creates a scatterplot of the first two principal components:
+
+```{r}
+library(ggfortify)
+
+autoplot(pca, data = seeds, colour = "Variety")   # by default x = 1, y = 2
+```
+
+That is much better! The groups are almost completely separated, which shows that the variables can be used to discriminate between the three varieties.
+The first principal component accounts for 71.87% of the total variance in the data, and the second for 17.11%.
+
+If you like, you can plot other pairs of principal components than just components 1 and 2. In this case, component 3 may be of interest, 
+as its variance is almost as high as that of component 2. You can specify which components to plot with the x and y arguments:
+
+```{r}
+# Plot 2nd and 3rd PC:
+autoplot(pca, data = seeds, colour = "Variety",
+         x = 2, y = 3)
+```
+
+Here, the separation is nowhere near as clear as in the previous figure. In this particular example, plotting the first two principal components is the better choice.
+
+Judging from these plots, it appears that the kernel measurements can be used to discriminate between the three varieties of wheat. 
+In Chapters 7 and 11 you’ll learn how to use R to build models that can be used to do just that, e.g., by predicting which variety of wheat
+a kernel comes from given its measurements. 
+If we wanted to build a statistical model that could be used for this purpose, we could use the original measurements. 
+But we could also try using the first two principal components as the only input to the model. 
+Principal component analysis is very useful as a pre-processing tool used to create simpler models based on fewer variables
+(or ostensibly simpler, because the new variables are typically more difficult to interpret than the original ones).
+
+
+
+**Exercise 4.25**
+Use principal components on the carat, x, y, z, depth, and table variables in the diamonds data, and answer the following questions:
+
+- How much of the total variance does the first principal component account for? How many components are needed to account for at least 90% of the total variance?
+
+```{r}
+# Compute principal components:
+pca <- prcomp(diamonds[,c("carat","x","y","z","depth", "table")], center = TRUE, scale. = TRUE)
+# other way:  prcomp(diamonds[, which(sapply(diamonds, class) == "numeric")], ..)
+
+#pca
+```
+
+
+```{r}
+summary(pca)
+```
+
+The first PC accounts for 65.5 % of the total variance.
+The first two account for 86.9 % and the first three account for 98.3 % of the total variance.
+We need 3 components to account to reach more than 90 % of the total variance.
+
+- Judging by the loadings, what do the first two principal components measure?
+
+To see the loadings, we need to show the content of pca:
+
+```{r}
+pca
+```
+
+"The first PC appears to measure size: it is dominated by carat, x, y and z, which all are size measurements. 
+The second PC appears is dominated by depth and table and is therefore a summary of those measures."
+
+- What is the correlation between the first principal component and price?
+
+```{r}
+cor(pca$x[,1], diamonds$price)
+```
+
+"The (Pearson) correlation is 0.89, which is fairly high. Size is clearly correlated to price!"
+
+
+- Can the first two principal components be used to distinguish between diamonds with different cuts?
+
+```{r}
+library(ggfortify)
+
+autoplot(pca, data = diamonds, colour = "cut")
+```
+
+"The points are mostly gathered in one large cloud. Apart from the fact that very large or very small values of the second PC indicates that a diamond has a Fair cut,
+the first two principal components seem to offer little information about a diamond’s cut."
+
+**Exercise 4.26**
+Return to the scatterplot of the first two principal components for the seeds data created above. 
+Adding the arguments loadings = TRUE and loadings.label = TRUE to the autoplot call creates a biplot, 
+which shows the loadings for the principal components on top of the scatterplot. 
+Create a biplot and compare the result to those obtained by looking at the loadings numerically.
+Do the conclusions from the two approaches agree?
+
+```{r}
+seeds <- read.table("https://tinyurl.com/seedsdata",
+        col.names = c("Area", "Perimeter", "Compactness", "Kernel_length", "Kernel_width", "Asymmetry", "Groove_length", "Variety"))
+
+seeds$Variety <- factor(seeds$Variety)
+
+pca <- prcomp(seeds[,-8], center = TRUE, scale. = TRUE)
+```
+
+
+```{r}
+library(ggfortify)
+
+autoplot(pca, data = seeds, colour = "Variety",
+         loadings = TRUE, loadings.label = TRUE)
+```
+
+"The arrows for Area, Perimeter, Kernel_length, Kernel_width and Groove_length are all about the same length and are close to parallel the x-axis, 
+which shows that these have similar impact on the first principal component but not the second, making the first component a measure of size.
+Asymmetry and Compactness both affect the second component, making it a measure of shape. 
+Compactness also affects the first component, but not as much as the size variables do."
+
+
+
+
+
+
