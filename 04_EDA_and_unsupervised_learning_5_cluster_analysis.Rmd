@@ -1,0 +1,143 @@
+---
+title: "04_EDA_and_unsupervised_learning_5"
+author: "Fran Camacho"
+date: "2025-09-01"
+output: word_document
+---
+
+# 4 - Exploratory data analysis and unsupervised learning
+
+https://modernstatisticswithr.com/eda.html#clustering
+
+```{r}
+#Libraries
+
+#https://tidyverse.r-universe.dev/tidyverse
+if (!require(tidyverse)) install.packages('tidyverse', repos = c('https://tidyverse.r-universe.dev', 'https://cloud.r-project.org'))
+library(tidyverse)
+
+```
+
+## 4.12 Cluster analysis
+
+Cluster analysis is concerned with grouping observations into groups, clusters, that in some sense are similar.
+Numerous methods are available for this task, approaching the problem from different angles. 
+Many of these are available in the cluster package, which ships with R.
+In this section, we’ll look at a smorgasbord of clustering techniques.
+
+
+### Hierarchical clustering
+
+As a first example where clustering can be of interest, we’ll consider the **votes.repub data** from cluster. 
+It describes the proportion of votes for the Republican candidate in US presidential elections from 1856 to 1976 in 50 different states:
+
+```{r}
+library(cluster)
+?votes.repub
+
+View(votes.repub)
+```
+
+
+We are interested in finding subgroups – clusters – of states with similar voting patterns.
+
+To find clusters of similar observations (states, in this case), we could start by assigning each observation to its own cluster.
+We’d then start with 50 clusters, one for each observation. Next, we could merge the two clusters that are the most similar, yielding 49 clusters,
+one of which consisted of two observations and 48 consisting of a single observation. 
+We could repeat this process, merging the two most similar clusters in each iteration until only a single cluster was left.
+This would give us a hierarchy of clusters, which could be plotted in a tree-like structure, where observations from the same cluster
+would be shown one the same branch. 
+Like this:
+
+```{r fig.width=12}
+clusters_agnes <- agnes(votes.repub)
+
+plot(clusters_agnes, which = 2)
+```
+
+This type of plot is known as a **dendrogram**.
+
+We’ve just used **agnes**, a function from cluster that can be used to carry out hierarchical clustering in the manner described above.
+There are a couple of things that need to be clarified, though.
+
+First, how do we measure how similar two p-dimensional observations x and y are? agnes provides two measures of distance between points:
+
+- metric = "euclidean" (the default), uses the Euclidean L2 distance: ||x−y||=sqrt(sum((xi−yi)²))
+
+- metric = "manhattan", uses the Manhattan L1 distance: ||x−y||=sum(|xi−yi|) 
+
+
+Note that neither of these work if you have categorical variables in your data.
+If all your variables are binary, i.e., categorical with two values, you can use **mona** instead of agnes for hierarchical clustering.
+
+Second, how do we measure how similar two clusters of observations are? agnes offers a number of options here. Among them are:
+
+- method = "average" (the default), unweighted average linkage, uses the average distance between points from the two clusters,
+- method = "single", single linkage, uses the smallest distance between points from the two clusters,
+- method = "complete", complete linkage, uses the largest distance between points from the two clusters,
+- method = "ward", Ward’s method, uses the within-cluster variance to compare different possible clusterings, 
+with the clustering with the lowest within-cluster variance chosen.
+
+
+Regardless of which of these you use, it is often a good idea to standardise the numeric variables in your dataset so that they all have the same variance.
+If you don’t, your distance measure is likely to be dominated by variables with larger variance, while variables with low variances will have little
+or no impact on the clustering. 
+To standardise your data, you can use scale:
+
+```{r fig.width=12}
+# Perform clustering on standardised data:
+clusters_agnes <- agnes(scale(votes.repub))
+
+# Plot dendrogram:
+plot(clusters_agnes, which = 2)
+```
+
+At this point, we’re starting to use several functions one after another, and so this looks like a perfect job for a pipeline. 
+To carry out the same analysis using the |> pipe, we write:
+
+```{r fig.width=12}
+votes.repub |> scale() |>
+               agnes() |> 
+               plot(which = 2)
+```
+
+We can now try changing the metric and clustering method used as described above. Let’s use the Manhattan distance and complete linkage:
+
+```{r fig.width=12}
+votes.repub |> scale() |>
+               agnes(metric = "manhattan", method = "complete") |> 
+               plot(which = 2)
+```
+
+We can change the look of the dendrogram by adding hang = -1, which causes all observations to be placed at the same level:
+
+```{r fig.width=12}
+votes.repub |> scale() |>
+               agnes(metric = "manhattan", method = "complete") |> 
+               plot(which = 2, hang = -1)
+```
+
+
+As an alternative to agnes, we can consider **diana**. agnes is an agglomerative method, which starts with a lot of clusters and then merge them 
+step-by-step. diana, in contrast, is a divisive method, which starts with one large cluster and then step-by-step splits it into several smaller clusters.
+
+```{r fig.width=12}
+votes.repub |> scale() |>
+               diana() |> 
+               plot(which = 2)
+```
+
+You can change the distance measure used by setting metric in the diana call. Euclidean distance is the default.
+
+To wrap this section up, we’ll look at two packages that are useful for plotting the results of hierarchical clustering: **dendextend** and **factoextra**. 
+We installed factoextra in the previous section, but still need to install dendextend:
+
+
+
+
+
+
+
+
+
+
