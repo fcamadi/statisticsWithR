@@ -133,8 +133,139 @@ To wrap this section up, we’ll look at two packages that are useful for plotti
 We installed factoextra in the previous section, but still need to install dendextend:
 
 
+```{r}
+if (!require(factoextra)) install.packages('factoextra', dependencies = T)
+library(factoextra)
+
+if (!require(dendextend)) install.packages('dendextend', dependencies = T)
+library(dendextend)
+```
 
 
+To compare the dendrograms produced by different methods (or the same method with different settings), in a **tanglegram**, where the dendrograms are plotted against each other,
+we can use tanglegram from dendextend:
+
+```{r}
+library(dendextend)
+# Create clusters using agnes:
+votes.repub |> scale() |>
+               agnes() -> clusters_agnes
+```
+
+
+```{r}
+# Create clusters using diana:
+votes.repub |> scale() |>
+               diana() -> clusters_diana
+```
+
+
+```{r fig.width=10}
+# Compare the results:
+tanglegram(as.dendrogram(clusters_agnes), 
+           as.dendrogram(clusters_diana))
+```
+
+??????????????????????!!!!!!!!!!!!!!!!!
+
+Some clusters are quite similar here, whereas others are very different.
+
+Often, we are interested in finding a comparatively small number of clusters, k. In hierarchical clustering, we can reduce the number of clusters by “cutting”
+the dendrogram tree. To do so using the factoextra package, we first use **hcut** to cut the tree into k parts, and then **fviz_dend** to plot the dendrogram, 
+with each cluster plotted in a different colour. If, for instance, we want k=5 clusters and want to use agnes with average linkage and Euclidean distance 
+for the clustering, we’d do the following:
+
+```{r}
+library(factoextra)
+
+votes.repub |> scale() |>
+               hcut(k = 5, hc_func = "agnes",
+                    hc_method = "average",
+                    hc_metric = "euclidean") |> 
+               fviz_dend()
+```
+
+There is no inherent meaning to the colours – they are simply a way to visually distinguish between clusters.
+
+Hierarchical clustering is especially suitable for data with named observations. For other types of data, other methods may be better.
+We will consider some alternatives next.
+
+
+
+**Exercise 4.27**
+Continue the last example above by changing the clustering method to complete linkage with the Manhattan distance.
+
+- Do any of the five coloured clusters remain the same?
+
+```{r}
+library(cluster)
+library(factoextra)
+
+votes.repub |> scale() |>
+                hcut(k = 5, hc_func = "agnes",
+                     hc_method = "complete",
+                     hc_metric = "manhattan") |> 
+                fviz_dend()
+```
+Alaska and Vermont are clustered together in both cases. 
+
+To compare both dendograms:
+
+```{r fig.height=10}
+votes.repub |> scale() |>
+                hcut(k = 5, hc_func = "agnes",
+                     hc_method = "average",
+                     hc_metric = "euclidean") |> 
+                fviz_dend() -> dendro1
+votes.repub |> scale() |>
+                hcut(k = 5, hc_func = "agnes",
+                     hc_method = "complete",
+                     hc_metric = "manhattan") |> 
+                fviz_dend() -> dendro2
+
+
+library(patchwork)
+dendro1 / dendro2
+```
+
+
+To compare the two dendrograms in a different way, we can use tanglegram. Setting k_labels = 5 and k_branches = 5 gives us 5 coloured clusters:
+
+
+- How can you produce a tanglegram with five coloured clusters, to better compare the results from the two clusterings?
+
+```{r fig.height=10}
+votes.repub |> scale() |>
+                hcut(k = 5, hc_func = "agnes",
+                     hc_method = "average",
+                     hc_metric = "euclidean") -> clust1
+votes.repub |> scale() |>
+                hcut(k = 5, hc_func = "agnes",
+                     hc_method = "complete",
+                     hc_metric = "manhattan") -> clust2
+
+library(dendextend)
+tanglegram(as.dendrogram(clust1), 
+           as.dendrogram(clust2),
+           k_labels = 5,
+           k_branches = 5)
+```
+
+
+**Exercise 4.28**
+The USArrests data contains statistics on violent crime rates in 50 US states. Perform a hierarchical cluster analysis of the data. 
+With which states is Maryland clustered?
+
+```{r fig.width=8}
+library(cluster)
+library(magrittr)
+
+USArrests |> scale() |>
+                agnes() |> 
+                plot(which = 2)
+```
+
+Maryland is clustered with New Mexico, Michigan and Arizona, in that order.
 
 
 
