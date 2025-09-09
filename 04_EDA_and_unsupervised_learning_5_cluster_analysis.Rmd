@@ -268,6 +268,522 @@ USArrests |> scale() |>
 Maryland is clustered with New Mexico, Michigan and Arizona, in that order.
 
 
+### Heatmaps and clustering variables
+
+When looking at a dendrogram, you may ask why and how different observations are similar. 
+Similarities between observations can be visualised using a heatmap, which displays the levels of different variables using colour hues or intensities. 
+The heatmap function creates a heatmap from a matrix object.
+Let’s try it with the votes.repub voting data.
+Because votes.repub is a data.frame object, we have to convert it to a matrix with as.matrix first (see Section 2.10.2):
+
+```{r fig.width=10}
+library(cluster)
+
+votes.repub |> as.matrix() |> heatmap()
+#Figure 4.13: Heatmap showing similarities between observations. 
+```
+
+...
+
+As per usual, it is a good idea to standardise the data before clustering, which can be done using the scale argument in heatmap. 
+There are two options for scaling, either in the row direction (preferable if you wish to cluster variables) or the column direction 
+(preferable if you wish to cluster observations):
+
+```{r fig.width=10}
+# Standardisation suitable for clustering variables:
+votes.repub |> as.matrix() |> heatmap(scale = "row")  # default scale = row
+```
+
+```{r fig.width=10}
+# Standardisation suitable for clustering observations:
+votes.repub |> as.matrix() |> heatmap(scale = "col")
+```
+
+Looking at the first of these plots, we can see which elections (i.e., which variables) had similar outcomes in terms of Republican votes. 
+For instance, we can see that the elections in 1960, 1976, 1888, 1884, 1880, and 1876 all had similar outcomes, 
+with the large number of orange rows indicating that the Republicans neither did great nor did poorly.
+
+If you like, you can change the colour palette used. As in Section 4.2.4, you can choose between palettes from http://www.colorbrewer2.org.
+heatmap is not a ggplot2 function, so this is done in a slightly different way than what you’re used to from other examples. 
+Here are two examples, with the white-blue-purple sequential palette "BuPu" and the red-white-blue diverging palette "RdBu":
+
+```{r fig.width=10}
+library(RColorBrewer)
+
+col_palette <- colorRampPalette(brewer.pal(8, "BuPu"))(25)
+votes.repub |> as.matrix() |>
+    heatmap(scale = "row", col = col_palette)
+```
+
+
+```{r fig.width=10}
+col_palette <- colorRampPalette(brewer.pal(8, "RdBu"))(25)
+votes.repub |> as.matrix() |>
+    heatmap(scale = "row", col = col_palette)
+```
+
+
+**Exercise 4.29**
+Draw a heatmap for the USArrests data. Have a look at Maryland and the states with which it is clustered.
+Do they have high or low crime rates?
+
+```{r fig.height=12}
+# Standardisation suitable for clustering observations:
+USArrests |> as.matrix() |> heatmap(scale = "col")
+```
+
+"The heatmap shows that Maryland, and the states similar to it, has higher crime rates than most other states. 
+There are a few other states with high crime rates in other clusters, but those tend to only have a high rate for one crime
+(e.g. Georgia, which has a very high murder rate), whereas states in the cluster that Maryland is in have high rates 
+for all or almost all types of violent crime."
+
+
+### Centroid-based clustering
+
+Let’s return to the seeds data that we explored in Section 4.11:
+
+```{r}
+# Download the data:
+seeds <- read.table("https://tinyurl.com/seedsdata",
+         col.names = c("Area", "Perimeter", "Compactness",
+          "Kernel_length", "Kernel_width", "Asymmetry",
+          "Groove_length", "Variety"))
+
+seeds$Variety <- factor(seeds$Variety)
+```
+
+We know that there are three varieties of seeds in this dataset, but what if we didn’t? Or what if we’d lost the labels 
+and didn’t know what seeds are of what type? There are no row names for this data, and plotting a dendrogram may therefore
+not be that useful. Instead, we can use **k-means clustering**, where the points are clustered into k clusters based on 
+their distances to the cluster means, or centroids.
+
+When performing k-means clustering (using the algorithm of Hartigan & Wong (1979) that is the default in the function
+that we’ll use), the data is split into k clusters based on their distance to the mean of all points.
+Points are then moved between clusters, one at a time, based on how close they are (as measured by Euclidean distance)
+to the mean of each cluster. The algorithm finishes when no point can be moved between clusters without increasing 
+the average distance between points and the means of their clusters.
+
+To run a k-means clustering in R, we can use kmeans. Let’s start by using k=3 clusters:
+
+```{r}
+# First, we standardise the data, and then we do a k-means
+# clustering.
+# We ignore variable 8, Variety, which is the group label.
+seeds[, -8] |> scale() |> 
+               kmeans(centers = 3) -> seeds_cluster
+
+seeds_cluster
+```
+
+To visualise the results, we’ll plot the first two principal components. We’ll use colour to show the clusters.
+Moreover, we’ll plot the different varieties in different shapes to see if the clusters found correspond to different varieties:
+
+```{r}
+# Compute principal components:
+pca <- prcomp(seeds[,-8])
+
+library(ggfortify)
+autoplot(pca, data = seeds, colour = seeds_cluster$cluster,
+         shape = "Variety", size = 2, alpha = 0.75)
+
+#Figure 4.14: Clustering using k-means. 
+```
+
+In this case, the clusters more or less overlap with the varieties! Of course, in a lot of cases,
+we don’t know the number of clusters beforehand. What happens if we change k?
+
+k=2:
+
+```{r}
+seeds[, -8] |> scale() |> 
+                kmeans(centers = 2) -> seeds_cluster
+
+autoplot(pca, data = seeds, colour = seeds_cluster$cluster,
+         shape = "Variety", size = 2, alpha = 0.75)
+```
+
+k=4:
+
+```{r}
+seeds[, -8] |> scale() |> 
+                kmeans(centers = 4) -> seeds_cluster
+
+autoplot(pca, data = seeds, colour = seeds_cluster$cluster,
+         shape = "Variety", size = 2, alpha = 0.75)
+```
+
+And finally, a larger number of clusters, say k=12:
+
+```{r}
+seeds[, -8] |> scale() |> 
+                kmeans(centers = 12) -> seeds_cluster
+
+autoplot(pca, data = seeds, colour = seeds_cluster$cluster,
+         shape = "Variety", size = 2, alpha = 0.75)
+```
+
+If it weren’t for the fact that the different varieties were shown as different shapes, we’d have no way to say,
+based on this plot alone, which choice of k is preferable here. Before we go into methods for choosing k though,
+we’ll mention **pam**. pam is an alternative to k-means that works in the same way but uses median-like points,
+medoids instead of cluster means. This makes it more robust to outliers. Let’s try it with k=3 clusters:
+
+```{r}
+seeds[, -8] |> scale() |> 
+                pam(k = 3) -> seeds_cluster
+
+autoplot(pca, data = seeds, colour = seeds_cluster$clustering,
+         shape = "Variety", size = 2, alpha = 0.75)
+```
+
+For both kmeans and pam, there are visual tools that can help us choose the value of k in the **factoextra** package. 
+Let’s install it:
+
+```{r}
+if (!require(factoextra)) install.packages('factoextra', dependencies = T)
+library(factoextra)
+```
+
+The **fviz_nbclust* function in factoextra can be used to obtain plots that can guide the choice of k. 
+It takes three arguments as input: the data, the clustering function (e.g., kmeans or pam) and the method used for evaluating different choices of k.
+
+There are three options for the latter: "wss", "silhouette" and "gap_stat".
+
+method = "wss" yields a plot that relies on the within-cluster sum of squares, WSS, which is a measure of the within-cluster variation. 
+The smaller this is, the more compact are the clusters. The WSS is plotted for several choices of k,
+and we look for an “elbow”, just as we did when using a scree plot for PCA. 
+That is, we look for the value of k such that increasing k further doesn’t improve the WSS much. 
+Let’s have a look at an example, using pam for clustering:
+
+```{r}
+library(factoextra)
+fviz_nbclust(scale(seeds[, -8]), pam, method = "wss")
+```
+
+
+```{r}
+# Or, using a pipeline instead:
+seeds[, -8] |> scale() |> 
+               fviz_nbclust(pam, method = "wss")
+```
+
+k=3 seems like a good choice here.
+
+method = "silhouette" produces a silhouette plot. The silhouette value measures how similar a point is compared to other points in its cluster.
+The closer to 1 this value is, the better. In a silhouette plot, the average silhouette value for points in the data are plotted against k:
+
+```{r}
+fviz_nbclust(scale(seeds[, -8]), pam, method = "silhouette")
+```
+
+Judging by this plot, k=2 appears to be the best choice.
+
+Finally, method = "gap_stat" yields a plot of the gap statistic (Tibshirani et al., 2001), which is based on comparing the WSS
+to its expected value under a null distribution obtained using the bootstrap (Section 7.4). 
+Higher values of the gap statistic are preferable:
+
+```{r}
+fviz_nbclust(scale(seeds[, -8]), pam, method = "gap_stat")
+```
+
+In this case, k=3 gives the best value.
+
+In addition to plots for choosing k, factoextra provides the function **fviz_cluster** for creating PCA-based plots,
+with an option to add convex hulls or ellipses around the clusters:
+
+```{r}
+# First, find the clusters:
+seeds[, -8] |> scale() |> 
+               kmeans(centers = 3) -> seeds_cluster
+
+# Plot clusters and their convex hulls:
+library(factoextra)
+fviz_cluster(seeds_cluster, data = seeds[, -8])
+```
+
+
+```{r}
+# Without row numbers:
+fviz_cluster(seeds_cluster, data = seeds[, -8], geom = "point")
+```
+
+
+```{r}
+# With ellipses based on the multivariate normal distribution:
+fviz_cluster(seeds_cluster, data = seeds[, -8],
+             geom = "point", ellipse.type = "norm")
+```
+
+Note that in this plot, the shapes correspond to the clusters and not the varieties of seeds.
+
+
+**Exercise 4.30**
+The chorSub data from cluster contains measurements of 10 chemicals in 61 geological samples from the Kola Peninsula. 
+Cluster this data using either kmeans or pam (does either seem to be a better choice here?). What is a good choice of k here? Visualise the results.
+
+```{r message=FALSE, fig.width=12}
+library(cluster)
+?chorSub
+
+# Scatterplot matrix:
+library(GGally)
+ggpairs(chorSub)
+```
+
+There are a few outliers, so it may be a good idea to use pam as it is less affected by outliers than kmeans.
+Next, we draw some plots to help use choose k:
+
+```{r}
+library(factoextra)
+library(magrittr)
+
+chorSub |> scale() |> 
+                fviz_nbclust(pam, method = "wss")
+```
+
+
+```{r}
+chorSub |> scale() |> 
+                fviz_nbclust(pam, method = "silhouette")
+```
+
+
+```{r}
+chorSub |> scale() |> 
+                fviz_nbclust(pam, method = "gap")
+```
+
+There is no pronounced elbow in the WSS plot, although slight changes appear to occur at k=3 and k=7.
+Judging by the silhouette plot, k=3 may be a good choice, while the gap statistic indicates that k=7 would be preferable.
+Let’s try both values:
+
+```{r}
+# k = 3:
+chorSub |> scale() |> 
+                pam(k = 3) -> kola_cluster
+fviz_cluster(kola_cluster, geom = "point")
+```
+
+
+```{r}
+# k = 7:
+chorSub |> scale() |> 
+                pam(k = 7) -> kola_cluster
+fviz_cluster(kola_cluster, geom = "point")
+```
+
+"Neither choice is clearly superior. Remember that clustering is an exploratory procedure, that we use to try to better understand our data.
+
+The plot for k=7 may look a little strange, with two largely overlapping clusters. Bear in mind though, that the clustering algorithm
+uses all 10 variables and not just the first two principal components, which are what is shown in the plot. 
+The differences between the two clusters isn’t captured by the first two principal components."
+
+
+### Fuzzy clustering
+
+An alternative to k-means clustering is fuzzy clustering, in which each point is “spread out” over the k
+
+clusters instead of being placed in a single cluster. The more similar it is to other observations in a cluster,
+the higher is its membership in that cluster. Points can have a high degree of membership to several clusters, 
+which is useful in applications where points should be allowed to belong to more than one cluster. 
+An important example is genetics, where genes can encode proteins with more than one function. 
+If each point corresponds to a gene, it then makes sense to allow the points to belong to several clusters,
+potentially associated with different functions. 
+The opposite of fuzzy clustering is hard clustering, in which each point only belongs to one cluster.
+
+**fanny** from **cluster** can be used to perform fuzzy clustering:
+
+```{r}
+library(cluster)
+
+seeds[, -8] |> scale() |> 
+               fanny(k = 3) -> seeds_cluster
+
+# Check membership of each cluster for the different points:
+seeds_cluster$membership
+```
+
+
+```{r message=FALSE}
+# Plot the closest hard clustering:
+library(factoextra)
+
+fviz_cluster(seeds_cluster, geom = "point")
+
+# output:
+# Welcome! Want to learn more? See two factoextra-related books at 
+# https://goo.gl/ve3WBa
+```
+
+As for kmeans and pam, we can use fviz_nbclust to determine how many clusters to use:
+
+```{r}
+seeds[, -8] |> scale() |> 
+               fviz_nbclust(fanny, method = "wss")
+```
+
+
+```{r}
+seeds[, -8] |> scale() |> 
+               fviz_nbclust(fanny, method = "silhouette")
+```
+
+
+```{ r }
+# Producing the gap statistic plot takes a while here, so you may want to skip it in this case: (yes)
+seeds[, -8] |> scale() |> 
+               fviz_nbclust(fanny, method = "gap")
+```
+
+
+
+**Exercise 4.31**
+Do a fuzzy clustering of the USArrests data. Is Maryland strongly associated with a single cluster, 
+or with several clusters? 
+What about New Jersey?
+
+"First, we try to find a good number of clusters:"
+
+```{r}
+library(factoextra)
+library(magrittr)
+
+USArrests |> scale() |> 
+                fviz_nbclust(fanny, method = "wss")
+```
+
+
+```{r}
+USArrests |> scale() |> 
+                fviz_nbclust(fanny, method = "silhouette")
+```
+
+"We’ll go with k=2 clusters:"
+
+```{r}
+library(cluster)
+USArrests |> scale() |>
+                fanny(k = 2) -> USAclusters
+
+# Show memberships:
+USAclusters$membership
+```
+
+Maryland is mostly associated with the first cluster.
+Its neighbouring state New Jersey is equally associated with both clusters:
+
+Maryland       0.7262297 0.2737703
+New Jersey     0.5077570 0.4922430
+
+
+###  Model-based clustering
+
+As a last option, we’ll consider model-based clustering, in which each cluster is assumed to come from a multivariate normal distribution. 
+This will yield ellipsoidal clusters. **Mclust** from the **mclust** package fits such a model, called a Gaussian finite mixture model, 
+using the EM-algorithm (Scrucca et al., 2016). 
+First, let’s install the package:
+
+```{r}
+if (!require(mclust)) install.packages('mclust', dependencies = T)
+library(mclust)
+```
+
+
+Now, let’s cluster the seeds data. The number of clusters is chosen as part of the clustering procedure.
+We’ll use a function from the factoextra for plotting the clusters with ellipsoids.
+
+```{r}
+library(mclust)
+
+seeds_cluster <- Mclust(scale(seeds[, -8]))
+summary(seeds_cluster)
+```
+
+
+```{r}
+# Plot results with ellipsoids:
+library(factoextra)
+
+fviz_cluster(seeds_cluster, geom = "point", ellipse.type = "norm")
+```
+
+Gaussian finite mixture models are based on the assumption that the data is numerical. 
+For categorical data, we can use latent class analysis, which we’ll discuss in Section 10.1.3, instead.
+
+
+**Exercise 4.32**
+Return to the chorSub data from Exercise 4.30. Cluster it using a Gaussian finite mixture model.
+How many clusters do you find?
+
+```{r}
+library(cluster)
+library(mclust)
+
+kola_cluster <- Mclust(scale(chorSub))
+summary(kola_cluster)
+```
+
+
+```{r}
+# Plot results with ellipsoids:
+library(factoextra)
+
+fviz_cluster(kola_cluster, geom = "point", ellipse.type = "norm")
+```
+
+"Three clusters, that overlap substantially when the first two principal components are plotted, are found."
+
+
+### Comparing clusters
+
+Having found some interesting clusters, we are often interested in exploring differences between the clusters.
+To do so, we must first extract the cluster labels from our clustering (which are contained in the variables clustering for methods
+with Western female names, cluster for kmeans, and classification for Mclust).
+We can then add those labels to our data frame and use them when plotting.
+
+For instance, using the seeds data, we can compare the area of seeds from different clusters:
+
+```{r}
+# Cluster the seeds using k-means with k=3:
+library(cluster)
+
+seeds[, -8] |> scale() |> 
+               kmeans(centers = 3) -> seeds_cluster
+
+# Add the results to the data frame:
+seeds$clusters <- factor(seeds_cluster$cluster)
+
+# Instead of $cluster, we'd use $clustering for agnes, pam, and fanny
+# objects, and $classification for an Mclust object.
+
+# Compare the areas of the 3 clusters using boxplots:
+library(ggplot2)
+ggplot(seeds, aes(x = Area, group = clusters, fill = clusters)) +
+      geom_boxplot()
+```
+
+
+```{r}
+# Or using density estimates:
+ggplot(seeds, aes(x = Area, group = clusters, fill = clusters)) +
+      geom_density(alpha = 0.7)
+```
+
+We can also create a scatterplot matrix to look at all variables simultaneously:
+
+```{r message=FALSE, fig.width=10}
+library(GGally)
+
+ggpairs(seeds[, -8], aes(colour = seeds$clusters, alpha = 0.2))
+```
+
+It may be tempting to run some statistical tests (e.g., a t-test) to see if there are differences between the clusters. 
+Note, however, that in statistical hypothesis testing, it is typically assumed that the hypotheses that are being tested have been generated independently from the data.
+Double-dipping, where the data first is used to generate a hypothesis (“judging from this boxplot, there seems to be a difference in means between these two groups!” or 
+“I found these clusters, and now I’ll run a test to see if they are different”) and then test that hypothesis, is generally frowned upon, 
+as that substantially inflates the risk of a type I error.
+Recently, however, there have been some advances in valid techniques for testing differences in means between clusters found using hierarchical clustering;
+see Gao et al. (2020).
+
 
 
 
