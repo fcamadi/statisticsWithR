@@ -1,0 +1,241 @@
+---
+title: "05_Dealing_with_messy_data"
+author: "Fran Camacho"
+date: "2025-09-10"
+output: word_document
+---
+
+# 5 - Dealing with messy data
+
+
+…or, put differently, welcome to the real world. Real datasets are seldom as tidy and clean as those you have seen in the previous examples in this book.
+On the contrary, real data is messy.
+...
+
+This chapter contains a number of examples that serve as cookbook recipes for common data wrangling tasks.
+...
+
+
+After working with the material in this chapter, you will be able to use R to:
+
+- Handle numeric and categorical data,
+- Manipulate and find patterns in text strings,
+- Work with dates and times,
+- Filter, subset, sort, and reshape your data using data.table, dplyr, and tidyr,
+. Split and merge datasets,
+. Scrape data from the web, and
+. Import data from different file formats.
+
+
+```{r}
+#Libraries
+
+#https://tidyverse.r-universe.dev/tidyverse
+if (!require(tidyverse)) install.packages('tidyverse', repos = c('https://tidyverse.r-universe.dev', 'https://cloud.r-project.org'))
+library(tidyverse)
+
+
+```
+
+
+## 5.1 Changing data types
+
+In Exercise 2.21 you discovered that R implicitly coerces variables into other data types when needed. 
+For instance, if you add a numeric to a logical, the result is a numeric.
+And if you place them together in a vector, the vector will contain two numeric values:
+
+```{r}
+TRUE + 5   ## TRUE == 1
+v1 <- c(TRUE, 5)
+v1
+```
+
+However, if you add a numeric to a character, the operation fails. 
+And if you put them together in a vector, both become character strings:
+
+```{r}
+"One" + 5
+```
+
+
+```{r}
+v2 <- c("One", 5)
+v2
+```
+
+There is a hierarchy for data types in R: logical < integer < numeric < character. When variables of different types are somehow combined 
+(with addition, put in the same vector, and so on), R will coerce both to the higher ranking type.
+That is why v1 contained numeric variables ..
+
+Automatic coercion is often useful, but will sometimes cause problems. As an example, a vector of numbers may accidentally be converted 
+to a character vector, which will confuse plotting functions. Luckily it is possible to convert objects to other data types. 
+The functions most commonly used for this are **as.logical**, **as.numeric** and **as.character**. Here are some examples of how they can be used:
+
+```{r}
+as.logical(1)           # Should be TRUE
+as.logical("FALSE")     # Should be FALSE
+as.numeric(TRUE)        # Should be 1
+as.numeric("2.718282")  # Should be numeric 2.718282
+as.character(2.718282)  # Should be the string "2.718282"
+as.character(TRUE)      # Should be the string "TRUE"
+```
+
+A word of warning though – conversion only works if R can find a natural conversion between the types.
+Here are some examples where conversion fails. Note that only some of them cause warning messages:
+
+```{r}
+as.numeric("two")                   # Should be 2
+as.numeric("1+1")                   # Should be 2 <- should be?
+as.numeric("2,718282")              # Should be numeric 2.718282
+as.logical("Vaccines cause autism") # Should be FALSE
+```
+
+
+
+
+**Exercise 5.1**
+The following tasks are concerned with converting and checking data types:
+
+- What happens if you apply as.logical to the numeric values 0 and 1? What happens if you apply it to other numbers?
+
+```{r}
+as.logical(0) # FALSE
+as.logical(1) # TRUE
+as.logical(123)  # TRUE
+```
+
+- What happens if you apply as.character to a vector containing numeric values?
+
+```{r}
+as.character(c(1,2,3,pi,sqrt(22))) # all converted
+```
+
+- The functions is.logical, is.numeric and is.character can be used to check if a variable is a logical, numeric or character, respectively. 
+What type of object do they return?
+
+```{r}
+is.numeric(123)
+is.numeric("123")
+
+```
+
+- Is NA a logical, numeric or character?
+
+```{r}
+is.logical(NA)
+is.numeric(NA) 
+is.character(NA)
+```
+
+?NA  -> "ºNA is a logical constant of length 1 which contains a missing value indicator. ..."
+
+
+## 5.2 Working with lists
+
+A data structure that is very convenient for storing data of different types is list. You can think of a list as a data frame
+where you can put different types of objects in each column: like a numeric vector of length 5 in the first, a data frame in the second,
+and a single character in the third. 
+Here is an example of how to create a list using the function of the same name:
+
+```{r}
+my_list <- list(my_numbers = c(86, 42, 57, 61, 22),
+                my_data = data.frame(a = 1:3, b = 4:6),
+                my_text = "Lists are the best.")
+
+my_list
+```
+
+To access the elements in the list, we can use the same $ notation as for data frames:
+
+```{r}
+my_list$my_numbers
+my_list$my_text
+my_list$my_data$a[3]
+```
+
+In addition, we can access them using indices, but using double brackets:
+
+```{r}
+my_list[[1]]
+#my_list[[2]]
+my_list[[3]]
+```
+
+To access elements within the elements of lists, additional brackets can be added.
+For instance, if you wish to access the second element of the my_numbers vector, you can use either of these:
+
+```{r}
+my_list[[1]][2]
+my_list$my_numbers[2]
+```
+
+
+### Splitting vectors into lists
+
+Consider the airquality dataset, which among other things describes the temperature on each day during a five-month period.
+Suppose that we wish to split the airquality$Temp vector into five separate vectors: one for each month.
+We could do this by repeated filtering, e.g.,
+
+```{r}
+temp_may <- airquality$Temp[airquality$Month == 5]
+temp_june <- airquality$Temp[airquality$Month == 6]
+# ...and so on.
+```
+
+Apart from the fact that this isn’t a very good-looking solution, this would be infeasible if we needed to split our vector 
+into a larger number of new vectors. Fortunately, there is a function that allows us to split the vector by month,
+storing the result as a list - **split**:
+
+```{r}
+temps <- split(airquality$Temp, airquality$Month)
+temps
+```
+
+
+```{r}
+# To access the temperatures for June:
+temps$`6`
+temps[[2]]
+```
+
+
+```{r}
+# To give more informative names to the elements in the list:
+names(temps) <- c("May", "June", "July", "August", "September")
+temps$June
+```
+
+Note that, in breach of the rules for variable names in R, the original variable names here were numbers 
+(actually character variables that happened to contain numeric characters). 
+When accessing them using $ notation, you need to put them between backticks (`), e.g., temps$`6`, 
+to make it clear that 6 is a variable name and not a number.
+
+
+### Collapsing lists into vectors
+
+Conversely, there are times where you want to collapse a list into a vector. This can be done using **unlist**:
+
+```{r}
+original <- unlist(temps)
+original
+```
+
+
+**Exercise 5.2**
+Load the vas.csv data from Exercise 2.30. Split the VAS vector so that you get a list containing one vector for each patient. 
+How can you then access the visual analogue scale (VAS) values for patient 212?
+
+```{r}
+vas <- read.csv("vas.csv", sep = ";", dec = ",", skip = 4)
+```
+
+```{r}
+vas_split <- split(vas$VAS, vas$ID)
+
+vas_split$`212`
+vas_split[[12]]
+```
+
+
+
+
