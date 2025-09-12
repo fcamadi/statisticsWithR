@@ -527,13 +527,231 @@ sqrt(2^2) - 2  # 0
 ```
 
 
+## 5.4 Working with categorical data and factors
+
+In Sections 2.6.2 and 2.8 we looked at how to analyse and visualise categorical data, i.e., data where the variables can take 
+a fixed number of possible values that somehow correspond to groups or categories. But so far we haven’t really gone into
+how to handle categorical variables in R.
+
+Categorical data is stored in R as factor variables. You may ask why a special data structure is needed for categorical data,
+when we could just use character variables to represent the categories. Indeed, the latter is what R does by default, e.g., 
+when creating a data.frame object or reading data from .csv and .xlsx files.
+
+Let’s say that you’ve conducted a survey on students’ smoking habits. The possible responses are Never, Occasionally, Regularly, 
+and Heavy. From 10 students, you get the following responses:
+
+```{r}
+smoke <- c("Never", "Never", "Heavy", "Never", "Occasionally",
+           "Never", "Never", "Regularly", "Regularly", "No")
+```
+
+Note that the last answer is invalid – No was not one of the four answers that were allowed for the question.
+
+You could use table to get a summary of how many answers of each type that you got:
+
+```{r}
+table(smoke)
+```
+
+But the categories are not presented in the correct order! There is a clear order between the different categories,
+Never < Occasionally < Regularly < Heavy, but table doesn’t present the results in that way.
+Moreover, R didn’t recognise that No was an invalid answer and treats it just the same as the other categories.
+
+This is where factor variables come in. They allow you to specify which values your variable can take, and the ordering between them (if any).
+
+### Creating factors
+
+When creating a factor variable, you typically start with a character, numeric or logical variable, the values of which are turned into categories.
+To turn the smoke vector that you created in the previous section into a factor, you can use the factor function:
+
+```{r}
+smoke2 <- factor(smoke)
+
+smoke2
+```
+
+So far, we haven’t solved neither the problem of the categories being in the wrong order nor that invalid No value. 
+To fix both these problems, we can use the **levels** argument in factor:
+
+```{r}
+smoke3 <- factor(smoke, levels = c("Never", "Occasionally", "Regularly", "Heavy"),
+                        ordered = TRUE)
+
+# Check the results:
+smoke3
+levels(smoke3)
+table(smoke3)
+```
+
+You can control the order in which the levels are presented by choosing which order we write them in the levels argument. 
+The ordered = TRUE argument specifies that the order of the variables is meaningful.
+...
+To find the values of smoke that became NA in smoke2, you can use which and is.na:
+
+```{r}
+smoke[which(is.na(smoke3))]
+```
+
+
+
+By checking the original values of the NA elements, you can see if they should be excluded from the analysis or recoded into a proper category
+(No could for instance be recoded into Never). In Section 5.5.3 you’ll learn how to replace values in larger datasets automatically using regular expressions.
+
+
+### Changing factor levels
+
+When we created smoke3, one of the elements became an NA. NA was however not included as a level of the factor.
+Sometimes, it is desirable to include NA as a level, for instance when you want to analyse rows with missing data.
+This is easily done using the **addNA** function:
+
+```{r}
+smoke3 <- addNA(smoke3)
+
+smoke3
+```
+
+If you wish to change the name of one or more of the factor levels, you can do it directly via the levels function.
+For instance, we can change the name of the NA category, which is the 5th level of smoke2, as follows:
+
+```{r}
+levels(smoke3)[5] <- "Invalid answer"
+
+smoke3
+table(smoke3)
+```
+
+The above solution is a little brittle in that it relies on specifying the index of the level name, which can change if we’re not careful.
+More robust solutions using the data.table and dplyr packages are presented in Section 5.7.6.
+
+Finally, if you’ve added more levels than what are actually used, these can be dropped using the **droplevels** function:
+
+```{r}
+smoke4 <- factor(smoke, levels = c("Never", "Occasionally", "Regularly", "Heavy", "Constantly"),
+                        ordered = TRUE)
+
+levels(smoke4)
+smoke4 <- droplevels(smoke4)
+
+levels(smoke4)
+```
+
+
+### Changing the order of levels
+
+Now suppose that we’d like the levels of the smoke variable to be presented in the reverse order: Heavy, Regularly, Occasionally, and Never.
+This can be done by a new call to factor, where the new level order is specified in the levels argument:
+
+```{r}
+smoke5 <- factor(smoke4, levels = c("Heavy", "Regularly", "Occasionally", "Never"))
+
+# Check the results:
+levels(smoke5)
+```
+
+
+### Combining levels
+
+Finally, levels can be used to merge categories by replacing their separate names with a single name. 
+For instance, we can combine the smoking categories Occasionally, Regularly, and Heavy to a single category named Yes.
+Assuming that these are first, second, and third in the list of names (as will be the case if you’ve run the last code chunk above), 
+here’s how to do it:
+
+```{r}
+levels(smoke5)[1:3] <- "Yes"
+
+# Check the results:
+levels(smoke5)
+```
 
 
 
 
+**Exercise 5.5**
+In Exercise 2.27 you learned how to create a factor variable from a numeric variable using cut. 
+Return to your solution (or the solution at the back of the book) and do the following:
+
+- Change the category names to Mild, Moderate, and Hot.
+
+We re-use the solution from Exercise 2.27:
+
+```{r}
+airquality$TempCat <- cut(airquality$Temp,
+                          breaks = c(50, 70, 90, 110))
+```
+
+Next, we change the levels’ names:
+
+```{r}
+#airquality$TempCat  # [1] (50,70]  (70,90]  (70,90]  (50,70]  (50,70] ...
+
+levels(airquality$TempCat) <- c("Mild", "Moderate", "Hot")
+
+#airquality$TempCat  # [1] Mild     Moderate Moderate Mild  Mild ...
+```
+
+- Combine Moderate and Hot into a single level named Hot.
+
+```{r}
+levels(airquality$TempCat)[2:3] <- "Hot"
+
+#airquality$TempCat  # [1] Mild Hot  Hot  Mild Mild ...
+```
 
 
+**Exercise 5.6** 
+Load the msleep data from the ggplot2 package. Note that categorical variable vore is stored as a character. 
+Convert it to a factor by running msleep$vore <- factor(msleep$vore).
 
+```{r}
+library(ggplot2)
+str(msleep) # vore is a character vector!
+```
+
+- How are the resulting factor levels ordered? Why are they ordered in that way?
+
+```{r}
+msleep$vore <- factor(msleep$vore)
+levels(msleep$vore)
+```
+
+The levels are ordered alphabetically, which is the default in R.
+
+- Compute the mean value of sleep_total for each vore group.
+
+To compute grouped means, we use aggregate:
+
+```{r}
+means <- aggregate(sleep_total ~ vore, data = msleep, FUN = mean)
+
+means
+```
+
+
+- Sort the factor levels according to their sleep_total means.
+Hint: this can be done manually, or more elegantly using, e.g., a combination of the functions rank and match in an intermediate step.
+
+```{r}
+# Check order:
+#means
+# New order: herbi, carni, omni, insecti.
+
+# We could set the new order manually:
+msleep$vore <- factor(msleep$vore,
+                      levels = c("herbi", "carni", "omni", "insecti"))
+```
+
+
+```{r}
+# Alternatively, rank and match can be used to get the new order of
+# the levels:
+?rank
+?match
+ranks <- rank(means$sleep_total)
+new_order <- match(1:4, ranks)
+
+msleep$vore <- factor(msleep$vore,
+                      levels = levels(msleep$vore)[new_order])
+```
 
 
 
