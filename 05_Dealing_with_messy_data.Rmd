@@ -754,4 +754,347 @@ msleep$vore <- factor(msleep$vore,
 ```
 
 
+## Working with strings
+
+Text in R is represented by character strings. These are created using double or single quotes. I recommend double quotes for three reasons.
+First, it is the default in R and is the recommended style (see, e.g., ?Quotes). 
+Second, it improves readability – code with double quotes is easier to read because double quotes are easier to spot than single quotes. 
+Third, it will allow you to easily use apostrophes in your strings, which single quotes don’t (because apostrophes will be interpreted as the end of the string).
+Single quotes can however be used if you need to include double quotes inside your string:
+
+```{r}
+# This works:
+text1 <- "An example of a string. Isn't this great?"
+text2 <- 'Another example of a so-called "string".'
+
+# This doesn't work:
+#text1_fail <- 'An example of a string. Isn't this great?'
+#text2_fail <- "Another example of a so-called "string"."
+```
+
+If you check what these two strings look like, you’ll notice something funny about text2:
+
+```{r}
+text1
+text2
+```
+
+R has put backslash characters, \, before the double quotes. The backslash is called an escape character, 
+which invokes a different interpretation of the character that follows it. 
+In fact, you can use this to put double quotes inside a string that you define using double quotes:
+
+```{r}
+text2_success <- "Another example of a so-called \"string\"."
+
+text2_success
+```
+
+There are a number of other special characters that can be included using a backslash: 
+\n for a line break (a new line) and \t for a tab (a long whitespace) being the most important:
+
+```{r}
+text3 <- "Text... \n \t With indented text on a new line!"
+
+text3
+```
+
+(What?)
+
+To print your string in the Console in a way that shows special characters instead of their escape character-versions, use the function cat:
+
+```{r}
+cat(text3)
+```
+
+(Ah,)
+
+You can also use cat to print the string to a text file…
+
+```{r}
+# cat(text3, file = "new_findings.txt")
+```
+
+... and to append text at the end of a text file:
+
+```{r}
+cat("Let's add even more text!", file = "new_findings.txt", append = TRUE)
+```
+
+
+### Concatenating strings
+
+If you wish to concatenate multiple strings, cat will do that for you:
+
+```{r}
+first <- "This is the beginning of a sentence"
+second <- "and this is the end."
+
+cat(first, second)
+```
+
+By default, cat places a single white space between the two strings, ...
+. You can change that using the **sep** argument in cat. You can also add as many strings as you like as input:
+
+```{r}
+cat(first, second, sep = "; ")
+cat(first, second, sep = "\n")
+cat(first, second, sep = "")
+cat(first, second, "\n", "And this is another sentence.")
+```
+
+At other times, you want to concatenate two or more strings without printing them.
+You can then use paste in exactly the same way as you’d use cat, the exception being that paste returns a string instead of printing it.
+
+```{r}
+my_sentence <- paste(first, second, sep = "; ")
+my_novel <- paste(first, second, "\n", "And this is another sentence.")
+
+# View results:
+my_sentence
+my_novel
+cat(my_novel)
+```
+
+Finally, if you wish to create a number of similar strings based on information from other variables,
+you can use **sprintf**, which allows you to write a string using **%s** as a placeholder for the values that should be pulled
+from other variables:
+
+```{r}
+names <- c("Irma", "Bea", "Lisa")
+ages <- c(5, 59, 36)
+
+sprintf("%s is %s years old.", names, ages)
+```
+
+
+### Changing case
+
+If you need to translate characters from lowercase to uppercase or vice versa, that can be done using toupper and tolower:
+
+```{r}
+my_string <- "SOMETIMES I SCREAM (and sometimes I whisper)."
+
+toupper(my_string)
+tolower(my_string)
+```
+
+
+If you only wish to change the case of some particular element in your string, you can use **substr**, which allows you to access substrings:
+
+```{r}
+months <- c("january", "february", "march", "aripl")
+
+# Replacing characters 2-4 of months[4] with "pri":
+substr(months[4], 2, 4) <- "pri"
+months
+
+# Replacing characters 1-1 (i.e. character 1) of each element of month
+# with its uppercase version:
+substr(months, 1, 1) <- toupper(substr(months, 1, 1))
+months
+```
+
+
+### Finding patterns using regular expressions
+
+...
+
+To illustrate the use of regular expressions, we will use a sheet from the projects-email.xlsx file from the book’s web page.
+In Exercise 2.32, you explored the second sheet in this file, but here we’ll use the third instead. 
+Set file_path to the path to the file, and then run the following code to import the data:
+
+```{r}
+if (!require(openxlsx)) install.packages('openxlsx', dependencies = T)
+library(openxlsx)
+```
+
+```{r}
+library(openxlsx)
+
+contacts <- read.xlsx("data/projects-email.xlsx", sheet = 3)
+str(contacts)
+```
+
+There are now three variables in contacts. We’ll primarily be concerned with the third one: Address. 
+Some people have email addresses attached to them, others have postal addresses, and some have no address at all:
+
+```{r}
+contacts$Address
+```
+
+You can find loads of guides on regular expressions online, but few of them are easy to use with R, the reason being that regular expressions in R
+sometimes require escape characters that aren’t needed in some other programming languages. 
+In this section we’ll take a look at regular expressions, *as they are written in R*.
+
+The basic building blocks of regular expressions are patterns consisting of one or more characters. If, for instance, we wish to find all occurrences 
+of the letter y in a vector of strings, the regular expression describing that “pattern” is simply "y". 
+The functions used to find occurrences of patterns are called **grep** and **grepl**. They differ only in the output they return: 
+grep returns the indices of the strings containing the pattern, and 
+grepl returns a logical vector with TRUE at indices matching the patterns and FALSE at other indices.
+
+To find all addresses containing a lowercase y, we use grep and grepl as follows:
+
+```{r}
+grep("y", contacts$Address)
+grepl("y", contacts$Address)
+```
+
+Note how both outputs contain the same information presented in different ways.
+
+In the same way, we can look for word or substrings. For instance, we can find all addresses containing the string "Edin":
+
+```{r}
+grep("Edin", contacts$Address)
+grepl("Edin", contacts$Address)
+```
+
+Similarly, we can also look for special characters. Perhaps we can find all email addresses by looking for strings containing the @ symbol:
+
+```{r}
+grep("@", contacts$Address)
+grepl("@", contacts$Address)
+```
+
+To display the addresses matching the pattern:
+
+```{r}
+# 
+contacts$Address[grep("@", contacts$Address)]
+```
+
+...
+
+Patterns describing classes of characters, e.g., characters with certain properties, are denoted by brackets [] (for manually defined classes)
+or double brackets [[]] (for pre-defined classes). One example of the latter is "[[:digit:]], which is a pattern that matches all digits: 0 1 2 3 4 5 6 7 8 9. 
+Let’s use it to find all addresses containing a number:
+
+```{r}
+grep("[[:digit:]]", contacts$Address)
+```
+
+
+```{r}
+contacts$Address[grep("[[:digit:]]", contacts$Address)]
+```
+
+
+Some important pre-defined classes are:
+
+    [[:lower:]] matches lowercase letters,
+    [[:upper:]] matches UPPERCASE letters,
+    [[:alpha:]] matches both lowercase and UPPERCASE letters,
+    [[:digit:]] matches digits: 0 1 2 3 4 5 6 7 8 9,
+    [[:alnum:]] matches alphanumeric characters (alphabetic characters and digits),
+    [[:punct:]] matches punctuation characters: ! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ { | } ~`,
+    [[:space:]] matches space characters: space, tab, newline, and so on,
+    [[:graph:]] matches letters, digits, and punctuation characters,
+    [[:print:]] matches letters, digits, punctuation characters, and space characters,
+    . matches any character.
+
+Examples of manually defined classes are:
+
+    [abcd] matches a, b, c, and d,
+    [a-d] matches a, b, c, and d,
+    [aA12] matches a, A, 1 and 2,
+    [.] matches .,
+    [.,] matches . and ,,
+    [^abcd] matches anything except a, b, c, or d.
+
+
+So, for instance, we can find all addresses that don’t contain at least one of the letters y and z using:
+
+```{r}
+grep("[^yz]", contacts$Address)
+```
+
+
+```{r}
+contacts$Address[grep("[^yz]", contacts$Address)]
+```
+
+!!!!
+
+[1] "ashlyn.cortes(a)r-project.org"     <- it DOES contain y
+[21] "tracey.best@r-project.org"        <- ALSO!
+[28] "sam.diaz@r-project.org"           <- it contains z ...  
+
+???
+
+
+All of these patterns can be combined with patterns describing a single character:
+
+    gr[ea]y matches grey and gray (but not greay!),
+    b[^o]g matches bag, beg, and similar strings, but not bog,
+    [.]com matches .com.
+
+When using the patterns above, you only look for a single occurrence of the pattern. Sometimes you may want a pattern like a word of 2-4 letters or any number of digits in a row. To create these, you add repetition patterns to your regular expression:
+
+    ? means that the preceding pattern is matched at most once, i.e., 0 or 1 time,
+    * means that the preceding pattern is matched 0 or more times,
+    + means that the preceding pattern is matched at least once, i.e., 1 time or more,
+    {n} means that the preceding pattern is matched exactly n times,
+    {n,} means that the preceding pattern is matched at least n times, i.e., n times or more,
+    {n,m} means that the preceding pattern is matched at least n times but not more than m times.
+
+Here are some examples of how repetition patterns can be used:
+
+```{r}
+# There are multiple ways of finding strings containing two n's
+# in a row:
+contacts$Address[grep("nn", contacts$Address)]
+contacts$Address[grep("n{2}", contacts$Address)]
+```
+
+
+```{r}
+# Find strings with words beginning with an uppercase letter, followed
+# by at least one lowercase letter:
+contacts$Address[grep("[[:upper:]][[:lower:]]+", contacts$Address)]
+```
+
+
+```{r}
+# Find strings with words beginning with an uppercase letter, followed
+# by at least six lowercase letters:
+contacts$Address[grep("[[:upper:]][[:lower:]]{6,}", contacts$Address)]
+```
+
+
+```{r}
+# Find strings containing any number of letters, followed by any
+# number of digits, followed by a space:
+contacts$Address[grep("[[:alpha:]]+[[:digit:]]+[[:space:]]",
+                      contacts$Address)]
+```
+
+Finally, there are some other operators that you can use to create even more complex patterns:
+
+    | alteration, picks one of multiple possible patterns. For example, ab|bc matches ab or bc.
+    () parentheses are used to denote a subset of an expression that should be evaluated separately. For example, colo|our matches colo or our while col(o|ou)r matches color or colour.
+    ^, when used outside of brackets [], means that the match should be found at the start of the string. For example, ^a matches strings beginning with a, but not "dad".
+    $ means that the match should be found at the end of the string. For example, a$ matches strings ending with a, but not "dad".
+    \\ escape character that can be used to match special characters like ., ^ and $ (\\., \\^, \\$).
+
+This may seem like a lot (and it is!), but there are in fact many more possibilities when working with regular expression. For the sake of some sort of brevity, we’ll leave it at this for now though.
+
+Let’s return to those email addresses. We saw three regular expressions that could be used to find them:
+
+```{r}
+grep(".+@.+[.].+", contacts$Address)
+grep(".+@.+\\..+", contacts$Address)
+
+grep("[[:graph:]]+@[[:graph:]]+[.][[:alpha:]]+", contacts$Address)
+grep("[[:alnum:]._-]+@[[:alnum:]._-]+[.][[:alpha:]]+", contacts$Address)
+```
+
+The first two of these specify the same pattern: any number of any characters, followed by an @, followed by any number of any characters, followed by a period ., 
+followed by any number of characters. This will match email addresses but would also match strings like "?=)(/x@!.a??", which isn’t a valid email address.
+In this case, that’s not a big issue, as our goal was to find addresses that looked like email addresses and not to verify that the addresses were valid.
+
+The third alternative has a slightly different pattern: any number of letters, digits, and punctuation characters, followed by an @, followed by any number of letters,
+digits, and punctuation characters, followed by a period ., followed by any number of letters. This too would match "?=)(/x@!.a??" as it allows 
+punctuation characters that don’t usually occur in email addresses. The fourth alternative, however, won’t match "?=)(/x@!.a??" as it only allows letters, 
+digits and the symbols ., _ and - in the name and domain name of the address.
+
+
 
