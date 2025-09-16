@@ -1097,4 +1097,237 @@ punctuation characters that don’t usually occur in email addresses. The fourth
 digits and the symbols ., _ and - in the name and domain name of the address.
 
 
+### Substitution
+
+An important use of regular expressions is in substitutions, where the parts of strings that match the pattern in the expression are replaced by another string.
+There are two email addresses in our data that contain (a) instead of @:
+
+```{r}
+contacts$Address[grep("[(]a[])]", contacts$Address)]
+```
+
+If we wish to replace the (a) by @, we can do so using **sub** and **gsub**. 
+The former replaces only the first occurrence of the pattern in the input vector, whereas the latter replaces all occurrences.
+
+```{r}
+sub("[(]a[])]", "@", contacts$Address)  # Replace first occurrence
+
+gsub("[(]a[])]", "@", contacts$Address) # Replace all occurrences
+```
+
+### Splitting strings
+
+At times you want to extract only a part of a string, for example if measurements recorded in a column contain units, e.g. 66.8 kg instead of 66.8.
+To split a string into different parts, we can use **strsplit**.
+
+As an example, consider the email addresses in our contacts data. Suppose that we want to extract the user names from all email addresses,
+i.e., remove the @domain.topdomain part. First, we store all email addresses from the data in a new vector, and then we split them at the @ sign:
+
+```{r}
+emails <- contacts$Address[grepl("[[:alnum:]._-]+@[[:alnum:]._-]+[.][[:alpha:]]+", contacts$Address)]
+emails
+
+emails_split <- strsplit(emails, "@")
+
+emails_split[1:5]
+```
+
+emails_split is a list. In this case, it seems convenient to convert the split strings into a matrix using **unlist** and **matrix** 
+(you may want to have a quick look at Exercise 2.23 to re-familiarise yourself with matrix):
+
+```{r}
+emails_split <- unlist(emails_split)
+
+# Store in a matrix with length(emails_split)/2 rows and 2 columns:
+emails_matrix <- matrix(emails_split,
+                        nrow = length(emails_split)/2,
+                        ncol = 2,
+                        byrow = TRUE)
+
+# Extract usernames:
+emails_matrix[,]
+```
+
+Similarly, when working with data stored in data frames, it is sometimes desirable to split a column containing strings into two columns.
+Some convenience functions for this are discussed in Section 5.11.3.
+
+
+### Variable names
+
+Variable names can be very messy, particularly when they are imported from files. You can access and manipulate the variable names of a data frame using **names**:
+
+```{r}
+names(contacts)
+
+names(contacts)[1] <- "ID number"
+names(contacts)
+
+grep("[aA]", names(contacts))
+```
+
+
+
+**Exercise 5.7**
+Download the file handkerchief.csv from the book’s web page. It contains a short list of prices of Italian handkerchiefs from the 1769 publication 
+*"A list of prices in those branches of the weaving manufactory, called the black branch, and the fancy branch"*. 
+Load the data in a data frame in R and then do the following:
+
+```{r}
+prices <- read.csv2("data/handkerchiefs.csv", sep = ",")
+str(prices)
+```
+
+- Read the documentation for the function nchar. What does it do? Apply it to the Italian.handkerchief column of your data frame.
+
+?nchar
+"nchar takes a character vector as an argument and returns a vector whose elements contain the sizes of the corresponding elements of x."
+
+```{r}
+nchar(prices$Italian.handkerchiefs)
+```
+
+- Use grep to find out how many rows of the Italian.handkerchief column that contain numbers.
+
+```{r}
+grep("[[:digit:]]", prices$Italian.handkerchiefs)
+```
+
+
+- Find a way to extract the prices in shillings (S) and pence (D) from the Price column, storing these in two new numeric variables in your data frame.
+
+```{r}
+prices$Price
+```
+
+```{r}
+# Split strings at the space between the numbers and the letters:
+Price_split <- strsplit(prices$Price, " ")
+Price_split <- unlist(Price_split)
+Price_matrix <- matrix(Price_split, nrow = length(Price_split)/4,
+                       ncol = 4, byrow = TRUE)
+Price_matrix
+```
+
+
+```{r}
+# Add to the data frame:
+prices$PriceS <- as.numeric(Price_matrix[,1])
+prices$PriceD <- as.numeric(Price_matrix[,3])
+
+prices
+```
+
+
+**Exercise 5.8**
+Download the oslo-biomarkers.xlsx data from the book’s web page. It contains data from a medical study about patients 
+with disc herniations, performed at the Oslo University Hospital, Ullevål (this is a modified version of the data analysed by Moen et al. (2016)). 
+Blood samples were collected from a number of patients with disc herniations at three time points: 0 weeks (first visit at the hospital),
+6 weeks, and 12 months. The levels of some biomarkers related to inflammation were measured in each blood sample. 
+The first column in the spreadsheet contains information about the patient ID and the time point of sampling. 
+Load the data and check its structure. Each patient is uniquely identified by their ID number. 
+How many patients were included in the study?
+
+
+```{r}
+if (!require(data.table)) install.packages('data.table', dependencies = T)
+library(data.table)
+```
+
+
+```{r}
+library(openxlsx)
+
+#biomarkers <- read.xlsx("data/oslo-biomarkers.xlsx")
+#str(biomarkers)
+
+
+file_path <- "data/oslo-biomarkers.xlsx"
+oslo <- as.data.table(read.xlsx(file_path))
+str(oslo)
+```
+
+To find out how many patients were included in the study, we use strsplit to split the ID-timepoint string, and then unique:
+
+```{r}
+oslo_id <- unlist(strsplit(oslo$"PatientID.timepoint", "-"))
+
+oslo_id_matrix <- matrix(oslo_id, nrow = length(oslo_id)/2,
+                         ncol = 2, byrow = TRUE)
+
+oslo_id_matrix[1:10,]
+```
+
+
+```{r}
+unique(oslo_id_matrix[,1])
+length(unique(oslo_id_matrix[,1]))
+```
+
+We see that 118 patients were included in the study.
+
+
+**Exercise 5.9**
+What patterns do the following regular expressions describe? Apply them to the Address vector of the contacts data to check that you interpreted them correctly.
+
+- "g$"
+
+g$ matches strings ending with g
+
+```{r}
+contacts$Address[grep("g$", contacts$Address)]
+```
+
+
+- "^[^[[:digit:]]"
+
+It matches strings beginning with anything but a digit:
+
+```{r}
+contacts$Address[grep("^[^[[:digit:]]", contacts$Address)]
+```
+
+
+- "a(s|l)"
+
+It matches strings containing either as or al:
+
+```{r}
+contacts$Address[grep("a(s|l)", contacts$Address)]
+```
+
+
+- "[[:lower:]]+[.][[:lower:]]+"
+
+It matches strings containing any number of lowercase letters, followed by a period ., followed by any number of lowercase letters:
+
+```{r}
+contacts$Address[grep("[[:lower:]]+[.][[:lower:]]+", contacts$Address)]
+```
+
+
+**Exercise 5.10**
+Write code that, given a string, creates a vector containing all words from the string, with one word in each element and no punctuation marks.
+Apply it to the following string to check that it works:
+
+```{r}
+x <- "This is an example of a sentence, with 10 words. Here are 4 more!"
+```
+
+```{r}
+# split the string at the spaces
+x_split <- strsplit(x, " ")
+
+#  x_split is a list. To turn this into a vector, we use unlist
+x_split <- unlist(x_split)
+
+# use gsub to remove the punctuation marks, so that only the words remain
+gsub("[[:punct:]]", "", x_split)
+```
+
+
+If you like, you can put all steps on a single row:
+
+```{r}
+gsub("[[:punct:]]", "", unlist(strsplit(x, " ")))
+```
 
