@@ -1331,3 +1331,300 @@ If you like, you can put all steps on a single row:
 gsub("[[:punct:]]", "", unlist(strsplit(x, " ")))
 ```
 
+
+## 5.6 Working with dates and times
+
+Data describing dates and times can be complex, not least because they can be written is so many different formats. The date 1 April 2020 
+can be written as 2020-04-01, 20/04/01, 200401, 1/4 2020, 4/1/20, 1 Apr 20, and a myriad of other ways. 
+The time 5 past 6 in the evening can be written as 18:05 or 6.05 pm. In addition to this ambiguity, time zones, daylight saving time, 
+leap years, and even leap seconds make working with dates and times even more complicated.
+
+The default in R is to use the **ISO8601 standards**, meaning that dates are written as **YYYY-MM-DD**, and that times are written using the 24-hour
+**hh:mm:ss** format. In order to avoid confusion, you should always use these, unless you have very strong reasons not to.
+
+Dates in R are represented as Date objects, and dates with times as **POSIXct** objects. 
+The examples below are concerned with Date objects, but you will explore POSIXct too, in Exercise 5.12.
+
+### Date formats
+
+The **as.Date** function tries to coerce a character string to a date. For some formats, it will automatically succeed, whereas for others,
+you have to provide the format of the date manually. To complicate things further, what formats work automatically will depend on your system settings.
+Consequently, the safest option is always to specify the format of your dates, to make sure that the code still will run if you at some point have to execute it
+on a different machine. To help describe date formats, R has a number of tokens to describe days, months, and years:
+
+- %d - day of the month as a number (01-31).
+- %m - month of the year as a number (01-12).
+- %y - year without century (00-99).
+- %Y - year with century (e.g., 2020).
+
+Here are some examples of date formats, all describing 1 April 2020 – try them both with and without specifying the format to see what happens:
+
+```{r}
+as.Date("2020-04-01")
+as.Date("2020-04-01", format = "%Y-%m-%d")
+```
+
+```{r}
+as.Date("4/1/20")
+as.Date("4/1/20", format = "%m/%d/%y")
+```
+
+
+```{r}
+# Sometimes dates are expressed as the number of days since a
+# certain date. For instance, 1 April 2020 is 43,920 days after
+# 1 January 1900:
+as.Date(43920, origin = "1900-01-01")
+```
+
+If the date includes month or weekday names, you can use tokens to describe that as well:
+
+- %b - abbreviated month name, e.g., Jan, Feb.
+- %B - full month name, e.g., January, February.
+- %a - abbreviated weekday, e.g., Mon, Tue.
+- %A - full weekday, e.g., Monday, Tuesday.
+
+Things become a little more complicated now though, because R will interpret the names as if they were written in the language set in your locale,
+which contains a number of settings related to your language and region. 
+
+To find out what language is in your locale, you can use:
+
+```{r}
+Sys.getlocale("LC_TIME")
+```
+
+
+```{r}
+as.Date("Wednesday 1 april 2020", format = "%A %d %B %Y")  # NA
+as.Date("Miércoles 1 abril 2020", format = "%A %d %B %Y")  # ok
+```
+
+You may at times need to make similar translations of dates. One option is to use gsub to translate the names of months and weekdays 
+into the correct language (see Section 5.5.4). Alternatively, you can change the locale settings. 
+
+On most systems, the following setting will allow you to read English months and days properly:
+
+```{r}
+#Sys.setlocale("LC_TIME", "C")
+```
+
+The locale settings will revert to the defaults the next time you start R.
+
+Conversely, you may want to extract a substring from a Date object, for instance the day of the month.
+This can be done using **strftime**, using the same tokens as above.
+Here are some examples, including one with the token %j, which can be used to extract the day of the year:
+
+
+```{r}
+dates <- as.Date(c("2020-04-01", "2021-01-29", "2021-02-22"), format = "%Y-%m-%d")
+                   
+# Extract the day of the month:
+strftime(dates, format = "%d")
+
+# Extract the month:
+strftime(dates, format = "%m")
+
+# Extract the year:
+strftime(dates, format = "%Y")
+
+# Extract the day of the year:
+strftime(dates, format = "%j")
+```
+
+
+Should you need to, you can of course convert these objects from character to numeric using as.numeric.
+
+For a complete list of tokens that can be used to describe date patterns, see **?strftime**.
+
+
+**Exercise 5.11**
+Consider the following Date vector:
+
+```{r}
+dates <- as.Date(c("2015-01-01", "1984-03-12", "2012-09-08"), format = "%Y-%m-%d")
+```
+
+
+- Apply the functions weekdays, months, and quarters to the vector. What do they do?
+
+These functions are used to extract the weekday, month and quarter for each date
+
+```{r}
+weekdays(dates)
+months(dates)
+quarters(dates)
+```
+
+Wrong. The locale is Spanish. To show correct results:
+
+```{r}
+dates <- as.Date(c("2015-01-01", "1984-12-03", "2012-08-09"), format = "%Y-%d-%m")
+
+weekdays(dates)
+months(dates)
+quarters(dates)
+```
+
+
+- Use the julian function to find out how many days passed between 1970-01-01 and the dates in dates.
+
+```{r}
+julian(dates, origin = as.Date("1970-01-01", format = "%Y-%m-%d"))
+```
+
+
+**Exercise 5.12**
+Consider the three character objects created below:
+
+```{r}
+# Original (English Local)
+#time1 <- "2020-04-01 13:20"
+#time2 <- "2020-04-01 14:30"
+#time3 <- "2020-04-03 18:58"
+
+# Spanish Local
+time1 <- "2020-01-04 13:20"
+time2 <- "2020-01-04 14:30"
+time3 <- "2020-03-04 18:58"
+```
+
+
+- What happens if you convert the three variables to Date objects using as.Date without specifying the date format?
+
+- Convert time1 to a Date object and add 1 to it. What is the result?
+
+- Convert time3 and time1 to Date objects and subtract them. What is the result?
+
+- Convert time2 and time1 to Date objects and subtract them. What is the result?
+
+- What happens if you convert the three variables to POSIXct date and time objects using as.POSIXct without specifying the date format?
+
+- Convert time3 and time1 to POSIXct objects and subtract them. What is the result?
+
+- Convert time2 and time1 to POSIXct objects and subtract them. What is the result?
+
+- Use the difftime to repeat the calculation in task 6, but with the result presented in hours.
+
+
+**Exercise 5.13**
+In some fields, e.g., economics, data is often aggregated on a quarter-year level, as in these examples:
+
+```{r}
+qvec1 <- c("2020 Q4", "2021 Q1", "2021 Q2")
+qvec2 <- c("Q4/20", "Q1/21", "Q2/21")
+qvec3 <- c("Q4-2020", "Q1-2021", "Q2-2021")
+```
+
+To convert qvec1 to a Date object, we can use as.yearqtr from the zoo package in two ways:
+
+```{r}
+library(zoo)
+as.Date(as.yearqtr(qvec1, format = "%Y Q%q"))
+as.Date(as.yearqtr(qvec1, format = "%Y Q%q"), frac = 1)
+```
+
+- Describe the results. What is the difference? Which do you think is preferable?
+
+- Convert qvec2 and qvec3 to Date objects in the same way. Make sure that you get the format argument, which describes the date format, right.
+
+
+### Plotting with dates
+
+**ggplot2** automatically recognises Date objects and will usually plot them in a nice way.
+That only works if it actually has the dates though. Consider the following plot, which we created in Section 4.7.7 – it shows 
+the daily electricity demand in Victoria, Australia in 2014:
+
+```{r}
+library(plotly)
+library(fpp2)
+
+# Create the plot object
+myPlot <- autoplot(elecdaily[,"Demand"])
+
+# Create the interactive plot
+ggplotly(myPlot)
+```
+
+
+When you hover over the points, the formatting of the dates looks odd. We’d like to have proper dates instead. 
+In order to do so, we’ll use **seq.Date* to create a sequence of dates, ranging from 2014-01-01 to 2014-12-31:
+
+```{r}
+# Create a data frame with better formatted dates
+elecdaily2 <- as.data.frame(elecdaily)
+elecdaily2$Date <- seq.Date(as.Date("2014-01-01"), as.Date("2014-12-31"), by = "day")
+
+# Create the plot object
+myPlot <- ggplot(elecdaily2, aes(Date, Demand)) +
+            geom_line()
+      
+# Create the interactive plot
+ggplotly(myPlot)
+```
+
+
+**seq.Date** can be used analogously to create sequences where there is a week, month, quarter, or year between each element of the sequence, 
+by changing the **by** argument.
+
+
+**Exercise 5.14**
+Return to the plot from Exercise 4.12, which was created using
+
+```{r}
+library(fpp2)
+
+autoplot(elecdaily, facets = TRUE)
+```
+
+You’ll notice that the x-axis shows week numbers rather than dates (the dates in the elecdaily time series object are formatted as weeks with decimal numbers). 
+Make a time series plot of the Demand variable with dates (2014-01-01 to 2014-12-31) along the x-axis (your solution is likely to rely on standard R techniques
+rather than autoplot).
+
+The x-axis of the data can be changed in multiple ways. A simple approach is the following:
+
+```{r}
+## Create a new data frame with the correct dates and the demand data:
+dates <- seq.Date(as.Date("2014-01-01"), as.Date("2014-12-31"), by = "day")
+
+elecdaily2 <- data.frame(dates = dates, demand = elecdaily[,1])
+
+myPlot <- ggplot(elecdaily2, aes(dates, demand)) +
+      geom_line()
+
+ggplotly(myPlot)
+```
+
+A more elegant approach relies on the **xts** package for time series:
+
+```{r}
+library(xts)
+## Convert time series to an xts object:
+dates <- seq.Date(as.Date("2014-01-01"), as.Date("2014-12-31"), by = "day")
+elecdaily3 <- xts(elecdaily, order.by = dates)
+
+autoplot(elecdaily3[,"Demand"])
+```
+
+(more ellegant??)
+
+
+**Exercise 5.15**
+Create an interactive version time series plot of the a10 anti-diabetic drug sales data, as in Section 4.7.7. 
+Make sure that the dates are correctly displayed.
+
+```{r}
+## First, create a data frame with better formatted dates
+a102 <- as.data.frame(a10)
+a102$Date <- seq.Date(as.Date("1991-07-01"), as.Date("2008-06-01"), by = "month")
+
+## Create the plot object
+myPlot <- ggplot(a102, aes(Date, x)) +
+      geom_line() +
+      labs(x = "Sales")
+      
+## Create the interactive plot
+ggplotly(myPlot)
+```
+
+
+
