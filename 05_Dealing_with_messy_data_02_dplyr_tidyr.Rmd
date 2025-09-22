@@ -1,0 +1,580 @@
+---
+title: "05_Dealing_with_messy_data_02_dplyr_tidyr"
+author: "Fran Camacho"
+date: "2025-09-19"
+output: word_document
+---
+
+
+# 5 - Dealing with messy data
+
+
+## 5.7 Data manipulation with data.table, dplyr, and tidyr
+
+https://modernstatisticswithr.com/messychapter.html#data-manipulation-with-data.table-dplyr-and-tidyr
+
+
+In the remainder of this chapter, we will use three packages that contain functions for fast and efficient data manipulation: 
+**data.table** and the tidyverse packages **dplyr** and **tidyr**.
+
+```{r}
+if (!require(data.table)) install.packages('data.table', dependencies = T)
+library(data.table)
+
+if (!require(dplyr)) install.packages('dplyr', dependencies = T)
+library(dplyr)
+
+if (!require(tidyr)) install.packages('tidyr', dependencies = T)
+library(tidyr)
+
+```
+
+
+There is almost always more than one way to solve a problem in R. We now know how to access vectors and elements in data frames, e.g., 
+to compute means. We also know how to modify and add variables to data frames. Indeed, you can do just about anything using the functions in base R. 
+
+...
+
+**data.table** and the **tidyverse** packages offer simpler solutions and speed up the workflow for these types of problems. Both can be used for the same tasks. 
+You can learn one of them or both. The syntax used for data.table is often more concise and arguably more consistent than that in dplyr 
+(it is in essence an extension of the [i, j] notation that we have already used for data frames).
+Second, it is fast and memory-efficient, which makes a huge difference if you are working with big data (you’ll see this for yourself in Section 6.6). 
+On the other hand, many people prefer the syntax in **dplyr** and **tidyr**, which lends itself exceptionally well for usage with pipes.
+
+...
+
+In the sections below, we will see how to perform different operations using both data.table and the tidyverse packages. Perhaps you already know which one you want to use (data.table if performance is important to you, dplyr+tidyr if you like to use pipes or will be doing a lot of work with databases). 
+
+...
+
+
+###  data.table and tidyverse syntax basics
+
+data.table relies heavily on the [i, j] notation that is used for data frames in R. It also adds a third element: **[i, j, by]**. 
+Using this, R selects the rows indicated by i, the columns indicated by j, and groups them by by. This makes it easy, e.g., to compute grouped summaries.
+
+With the tidyverse packages, you will instead use specialised functions with names like filter and summarise to perform operations on your data. 
+These are typically combined using the pipe operator, |>, which makes the code flow nicely from left to right.
+
+It’s almost time to look at some examples of what this actually looks like in practice. First though, now that you’ve installed data.table and dplyr, 
+it’s time to load them (we’ll get to tidyr a little later). 
+We’ll also create a data.table version of the airquality data, which we’ll use in the examples below. This is required in order to use data.table syntax, 
+as it only works on data.table objects. Luckily, dplyr works perfectly when used on data.table objects, so we can use the same object for the examples for both packages.
+
+```{r}
+library(data.table)
+library(dplyr)
+
+aq <- as.data.table(airquality)
+```
+
+
+*When importing data from csv files, you can import them as data.table objects instead of data.frame objects by replacing read.csv with* **fread** *from the data.table package*.
+The latter function also has the benefit of being substantially faster when importing large (several megabytes) csv files.
+
+Note that, similar to what we saw in Section 5.2.1, variables in imported data frames can have names that would not be allowed in base R, for instance 
+including forbidden characters like -. data.table and dplyr allow you to work with such variables by wrapping their names in apostrophes: 
+referring to the illegally named variable as illegal-character-name won’t work, but `illegal-character-name` will.
+
+
+### Modifying a variable
+
+As a first example, let’s consider how to use **data.table** and **dplyr** to modify a variable in a data frame. 
+The wind speed in airquality is measured in miles per hour (mph). We can convert that to metres per second (m/s) by multiplying the speed by 0.44704.
+Using only base R, we’d do this using 
+
+```{r}
+airquality$Wind <- airquality$Wind * 0.44704.
+```
+
+With data.table we can instead do this using [i, j] notation, and with dplyr we can do it by using a function called mutate (because it “mutates” your data).
+
+Change wind speed to m/s instead of mph:
+
+With data.table:
+```{r}
+aq[, Wind := Wind * 0.44704]
+```
+
+With dplyr:
+```{r}
+aq |> mutate(Wind =
+         Wind * 0.44704) -> aq
+```
+
+Note that when using data.table, there is not an explicit assignment. We don’t use <- to assign the new data frame to aq – instead, 
+the assignment happens automatically. This means that you have to be a bit careful, so that you don’t inadvertently make changes 
+to your data when playing around with it.
+
+In this case, using data.table or dplyr doesn’t make anything easier. Where these packages really shine is when we attempt more 
+complicated operations. Before that though, let’s look at a few more simple examples.
+
+
+### Computing a new variable based on existing variables
+
+What if we wish to create new variables based on other variables in the data frame? For instance, maybe we want to create a dummy 
+variable called Hot, containing a logical that describes whether a day was hot (temperature above 90 - TRUE) or not (FALSE). 
+That is, we wish to check the condition Temp > 90 for each row and put the resulting logical in the new variable Hot.
+
+Add a dummy variable describing whether it is hotter than 90:
+
+
+With data.table:
+```{r}
+aq[, Hot := Temp > 90]
+```
+
+With dplyr:
+```{r}
+aq |> mutate(Hot = Temp > 90) -> aq
+```
+
+
+### Renaming a variable
+
+To change the name of a variable, we can use setnames from data.table or rename from dplyr. Let’s change the name of the variable Hot that we created in the previous section, to HotDay:
+
+With data.table:
+```{r}
+setnames(aq, "Hot", "HotDay")
+```
+
+With dplyr:
+```{r}
+aq |> rename(HotDay = Hot) -> aq
+```
+
+
+### Removing a variable
+
+Maybe adding Hot to the data frame wasn’t such a great idea after all. How can we remove it?
+
+Removing Hot:
+
+With data.table:
+```{r}
+aq[, Hot := NULL]
+```
+
+With dplyr:
+```{r}
+aq |> select(-Hot) -> aq
+```
+
+
+If we wish to remove multiple columns at once, the syntax is similar:
+
+Removing multiple columns:
+
+With data.table:
+```{r}
+aq[, c("Month", "Day") := NULL]
+```
+
+With dplyr:
+```{r}
+aq |> select(-Month, -Day) -> aq
+```
+
+
+
+**Exercise 5.16**
+Load the VAS pain data vas.csv from Exercise 2.30. Then do the following:
+
+We set file_path to the path for vas.csv and read the data as in Exercise 2.30 and convert it to a data.table
+(the last step being optional if we’re only using dplyr for this exercise):
+
+```{r}
+file_path <- "data/vas.csv"
+
+vas <- read.csv(file_path, sep = ";", dec = ",", skip = 4)
+vas <- as.data.table(vas)
+```
+
+A better option is to achieve the same result in a single line by using the **fread** function from data.table:
+
+```{r}
+vas <- fread(file_path, sep = ";", dec = ",", skip = 4)
+```
+
+
+- Remove the columns X and X.1.
+
+```{r}
+vas[, c("X", "X.1") := NULL]
+```
+
+```{r}
+vas |> select(-X, -X.1) -> vas
+```
+
+- Add a dummy variable called highVAS that indicates whether a patient’s VAS is 7 or greater on any given day.
+
+```{r}
+vas[, highVAS := VAS >= 7]
+```
+
+```{r}
+vas |> mutate(highVAS = VAS >= 7) -> vas
+```
+
+
+### Recoding factor levels
+
+Changing the names of factor levels in base R typically relies on using indices of level names, as in Section 5.4.2.
+This can be avoided using data.table or the recode function in dplyr. We return to the smoke example from Section 5.4 and put it in a data.table:
+
+```{r}
+library(data.table)
+library(dplyr)
+
+smoke <- c("Never", "Never", "Heavy", "Never", "Occasionally", "Never", "Never", "Regularly", "Regularly", "No")
+
+smoke2 <- factor(smoke, levels = c("Never", "Occasionally", "Regularly", "Heavy"),
+                        ordered = TRUE)
+
+smoke3 <- data.table(smoke2)
+smoke3
+```
+
+Suppose that we want to change the levels’ names to abbreviated versions: Nvr, Occ, Reg, and Hvy. Here’s how to do this:
+
+With data.table:
+```{r}
+new_names = c("Nvr", "Occ", "Reg", "Hvy")
+smoke3[.(smoke2 = levels(smoke2), to = new_names),
+         on = "smoke2",
+         smoke2 := i.to]
+
+smoke3[, smoke2 := droplevels(smoke2)]
+smoke3
+```
+
+With dplyr:
+```{r}
+# Version 2:
+smoke3 |> mutate(smoke2 = recode(smoke2,
+                  "Never" = "Nvr",
+                  "Occasionally" = "Occ",
+                  "Regularly" = "Reg",
+                  "Heavy" = "Hvy")) -> smoke3
+```
+
+
+Next, we can combine the Occ, Reg, and Hvy levels into a single level called Yes:
+
+With data.table:
+```{r}
+smoke3[.(smoke2 = c("Occ", "Reg", "Hvy"), to = "Yes"),
+       on = "smoke2",
+       smoke2 := i.to]
+```
+
+With dplyr:
+```{r}
+# Version 2:
+smoke3 |> mutate(smoke2 = recode(smoke2,
+                  "Occ" = "Yes",
+                  "Reg" = "Yes",
+                  "Hvy" = "Yes")) -> smoke3
+```
+
+
+**Exercise 5.17**
+In Exercise 2.27 you learned how to create a factor variable from a numeric variable using cut.
+Return to your solution (or the solution at the back of the book) and do the following using data.table and/or dplyr:
+
+We re-use the solution from Exercise 2.27:
+
+```{r}
+airquality$TempCat <- cut(airquality$Temp,
+                          breaks = c(50, 70, 90, 110))
+
+aq <- data.table(airquality)
+```
+
+- Change the category names to Mild, Moderate, and Hot.
+
+```{r}
+new_names = c("Mild", "Moderate",
+              "Hot")
+aq[.(TempCat = levels(TempCat),
+         to = new_names),
+         on = "TempCat",
+         TempCat := i.to]
+
+aq[,TempCat := droplevels(TempCat)]
+```
+
+```{r}
+aq |> mutate(TempCat = case_match(TempCat,
+              "(50,70]" ~ "Mild",
+              "(70,90]" ~ "Moderate",
+              "(90,110]" ~ "Hot")) -> aq
+```
+
+
+- Combine Moderate and Hot into a single level named Hot.
+
+```{r}
+aq[.(TempCat = c("Moderate", "Hot"),
+         to = "Hot"),
+         on = "TempCat", TempCat := i.to]
+
+aq[, TempCat := droplevels(TempCat)]
+```
+
+```{r}
+aq |> mutate(TempCat = case_match(TempCat,
+            "Mild" ~ "Mild",
+            c("Moderate", "Hot") ~ "Hot"))
+```
+
+
+### Grouped summaries
+
+We’ve already seen how we can use aggregate and by to create grouped summaries.
+However, in many cases it is as easy or easier to use data.table or dplyr for such summaries.
+
+To begin with, let’s load the packages again (in case you don’t already have them loaded), 
+and let’s recreate the aq data.table, which we made a bit of a mess of by removing some important columns in the previous section:
+
+```{r}
+library(data.table)
+library(dplyr)
+
+aq <- data.table(airquality)
+
+# class(aq)
+#[1] "data.table" "data.frame"
+```
+
+
+Now, let’s compute the mean temperature for each month. Both data.table and dplyr will return a data frame with the results.
+In the data.table approach, assigning a name to the summary statistic (mean, in this case) is optional, but not in dplyr.
+
+
+
+With data.table:
+```{r}
+aq[, mean(Temp), Month]
+
+# or, to assign a name:
+aq[, .(meanTemp = mean(Temp)),  Month]
+```
+
+
+With dplyr:
+```{r}
+aq |> group_by(Month) |>
+       summarise(meanTemp = mean(Temp))
+```
+
+To add that new column:
+
+```{r}
+aq |> group_by(Month) |>
+       mutate(meanTemp = mean(Temp), na.rm = TRUE) -> aq
+#to remove it
+aq$meanTemp <- NULL
+```
+
+
+You’ll recall that if we apply mean to a vector containing NA values, it will return NA:
+
+With data.table:
+```{r}
+aq[, mean(Ozone), Month]
+```
+
+With dplyr:
+```{r}
+aq |> group_by(Month) |>
+       summarise(meanTemp = mean(Ozone))
+```
+
+In order to avoid this, we can pass the argument na.rm = TRUE to mean, just as we would in other contexts.
+To compute the mean ozone concentration for each month, ignoring NA values:
+
+```{r}
+aq[, .(meanOzone = mean(Ozone, na.rm = TRUE)),  Month]
+```
+
+
+```{r}
+aq |> group_by(Month) |>
+       summarise(meanOzone = mean(Ozone, na.rm = TRUE))
+```
+
+What if we want to compute a grouped summary statistic involving two variables? 
+For instance, the correlation between temperature and wind speed for each month?
+
+With data.table:
+```{r}
+aq[, .(corTempAndWind = cor(Temp, Wind)), Month]
+```
+
+
+With dplyr:
+```{r}
+aq |> group_by(Month) |>
+       summarise(corTempAndWind = cor(Temp, Wind))
+```
+
+The syntax for computing multiple grouped statistics is similar. We compute both the mean temperature and the correlation for each month:
+
+With data.table:
+```{r}
+aq[, .(meanTemp = mean(Temp), cor = cor(Temp, Wind)), Month]
+```
+
+With dplyr:
+```{r}
+aq |> group_by(Month) |>
+       summarise(meanTemp = mean(Temp), cor = cor(Temp, Wind))
+```
+
+
+At times, you’ll want to compute summaries for all variables that share some property. As an example, you may want to compute the mean 
+of all numeric variables in your data frame. In dplyr there is a convenience function called **across** that can be used for this: 
+summarise(across(where(is.numeric), mean)) will compute the mean of all numeric variables.
+In data.table, we can instead utilise the **apply** family of functions from base R, that we’ll study in Section 6.5.,
+to compute the mean of all numeric variables:
+
+With data.table:
+```{r}
+aq[, lapply(.SD, mean, na.rm = TRUE), Month, .SDcols = is.numeric]
+```
+
+
+With dplyr:
+```{r}
+aq |> group_by(Month) |>
+       summarise(across( where(is.numeric), mean, na.rm = TRUE))
+```
+
+Both packages have special functions for counting the number of observations in groups: 
+**.N** for data.table and **n** for dplyr. For instance, we can count the number of days in each month:
+
+
+
+With data.table:
+```{r}
+aq[, .N, Month]
+```
+
+With dplyr:
+```{r}
+aq |> group_by(Month) |>
+       summarise(days = n())
+```
+
+Similarly, you can count the number of unique values of variables using uniqueN for data.table and n_distinct for dplyr:
+
+With data.table:
+```{r}
+aq[, uniqueN(Month)]
+```
+
+With dplyr:
+```{r}
+aq |> summarise(months = n_distinct(Month))
+```
+
+
+**Exercise 5.18**
+Load the VAS pain data vas.csv from Exercise 2.30. Then do the following using data.table and/or dplyr:
+
+```{r}
+file_path <- "data/vas.csv"
+vas <- fread(file_path, sep = ";", dec = ",", skip = 4)
+```
+
+
+- Compute the mean VAS for each patient.
+
+```{r}
+vas[, mean(VAS, na.rm = TRUE), ID]
+```
+
+```{r}
+vas |> group_by(ID) |>
+       summarise(meanVAS = mean(VAS, na.rm = TRUE))
+```
+
+- Compute the lowest and highest VAS recorded for each patient.
+
+```{r}
+vas[, .(min = min(VAS, na.rm = TRUE),
+        max = max(VAS, na.rm = TRUE)),
+        ID]
+```
+
+```{r}
+vas |> group_by(ID) |>
+       summarise(min = min(VAS, na.rm = TRUE),
+                 max = max(VAS, na.rm = TRUE))
+```
+
+
+- Compute the number of high-VAS days, defined as days with where the VAS was at least 7, for each patient.
+
+```{r}
+vas[, sum(VAS >= 7, na.rm = TRUE), ID]
+```
+```{r}
+vas |> group_by(ID) |>
+       summarise(highVASdays = sum(VAS >= 7, na.rm = TRUE))
+```
+
+
+
+
+**Exercise 5.19**
+We return to the datasauRus package and the datasaurus_dozen dataset from Exercise 2.28. Check its structure and then do the following using data.table and/or dplyr:
+
+```{r}
+library(datasauRus)
+
+dd <- as.data.table(datasaurus_dozen)
+```
+
+- Compute the mean of x, mean of y, standard deviation of x, standard deviation of y, and correlation between x and y, grouped by dataset. Are there any differences between the 12 datasets?
+
+```{r}
+dd[, .(mean_x = mean(x),
+        mean_y = mean(y),
+        sd_x = sd(x),
+        sd_y = sd(y),
+        cor = cor(x,y)),
+        dataset]
+```
+
+```{r}
+dd |> group_by(dataset) |>
+       summarise(mean_x = mean(x),
+        mean_y = mean(y),
+        sd_x = sd(x),
+        sd_y = sd(y),
+        cor = cor(x,y))
+```
+
+- Make a scatterplot of x against y for each dataset. Are there any differences between the 12 datasets?
+
+```{r, fig.width=10}
+library(ggplot2)
+
+ggplot(datasaurus_dozen, aes(x, y, colour = dataset)) +
+    geom_point() +
+    facet_wrap(~ dataset, ncol = 3)
+```
+
+Clearly, the datasets are very different! This is a great example of how simply computing summary statistics is not enough. 
+They tell a part of the story, yes, but only a part.
+
+
+### Filling in missing values
+
+
+
+
