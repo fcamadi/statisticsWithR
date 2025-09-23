@@ -575,6 +575,104 @@ They tell a part of the story, yes, but only a part.
 
 ### Filling in missing values
 
+In some cases, you may want to fill in missing values of a variable with the previous non-missing entry. To see an example of this, 
+let’s create a version of aq where the value of Month are missing for some days:
 
+```{r}
+aq$Month[c(2:3, 36:39, 70)] <- NA
+
+# Some values of Month are now missing:
+head(aq)
+```
+
+To fill in the missing values with the last non-missing entry, we can now use **nafill** or **fill** as follows:
+
+With data.table:
+```{r}
+aq[, Ozone := nafill(Ozone, "locf")]
+aq[, Solar.R := nafill(Solar.R, "locf")]
+aq[, Month := nafill(Month, "locf")]
+head(aq)
+```
+
+With tidyr:
+```{r}
+aq |> fill(Ozone) -> aq
+aq |> fill(Solar.R) -> aq
+aq |> fill(Month) -> aq
+head(aq)
+```
+
+To instead fill in the missing values with the next non-missing entry:
+
+With data.table:
+```{r}
+aq[, Ozone := nafill(Ozone, "nocb")]
+aq[, Solar.R := nafill(Solar.R, "nocb")]
+aq[, Month := nafill(Month, "nocb")]
+head(aq)
+```
+
+With tidyr:
+```{r}
+aq |> fill(Ozone,
+        .direction = "up") -> aq
+aq |> fill(Solar.R,
+        .direction = "up") -> aq
+aq |> fill(Month,
+        .direction = "up") -> aq
+head(aq)
+```
+
+
+**Exercise 5.20**
+Load the VAS pain data vas.csv from Exercise 2.30. 
+Fill in the missing values in the Visit column with the last non-missing value.
+
+```{r}
+library(data.table)
+
+file_path <- "data/vas.csv"
+vas <- fread(file_path, sep = ";", dec = ",", skip = 4)
+```
+
+```{r}
+head(vas)
+```
+
+```{r}
+vas[, Visit := nafill(Visit, "locf")]
+#vas[, Visit := nafill(V4, "locf")]
+head(vas)
+```
+
+```{r}
+vas |> fill(Visit)
+```
+
+
+### Chaining commands together
+
+When working with tidyverse packages, commands are usually chained together using |> pipes. When using data.table, commands are chained by repeated use of [] brackets
+on the same line. This is probably best illustrated using an example. Assume again that there are missing values in Month in aq:
+
+```{r}
+aq$Month[c(2:3, 36:39, 70)] <- NA
+head(aq)
+```
+
+To fill in the missing values with the last non-missing entry (Section 5.7.8) and then count the number of days in each month (Section 5.7.7), we can do as follows:
+
+```{r}
+aq[, Month := nafill(Month, "locf")][, .N, Month]
+```
+
+
+
+```{r}
+aq |> fill(Month) |> 
+       group_by(Month) |>
+       summarise(days = n())
+```
 
 
