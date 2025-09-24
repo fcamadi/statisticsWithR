@@ -84,7 +84,7 @@ The wind speed in airquality is measured in miles per hour (mph). We can convert
 Using only base R, we’d do this using 
 
 ```{r}
-airquality$Wind <- airquality$Wind * 0.44704.
+airquality$Wind <- airquality$Wind * 0.44704
 ```
 
 With data.table we can instead do this using [i, j] notation, and with dplyr we can do it by using a function called mutate (because it “mutates” your data).
@@ -674,5 +674,162 @@ aq |> fill(Month) |>
        group_by(Month) |>
        summarise(days = n())
 ```
+
+
+## Filtering: select rows
+
+You’ll frequently want to filter away some rows from your data. Perhaps you only want to select rows where a variable exceeds some value, 
+or you want to exclude rows with NA values. This can be done in several different ways: using row numbers, using conditions, at random, or using regular expressions.
+Let’s have a look at them, one by one. We’ll use aq, the data.table version of airquality that we created before, for the examples.
+
+```{r}
+library(data.table)
+library(dplyr)
+
+aq <- data.table(airquality)
+```
+
+
+###  Filtering using row numbers
+
+If you know the row numbers of the rows that you wish to remove (perhaps you’ve found them using which, as in Section 2.11.3?),
+you can use those numbers for filtering. Here are four examples.
+
+To select row 3:
+
+```{r}
+aq[3,]
+```
+
+```{r}
+aq |> slice(3)
+```
+
+To select rows 3 to 5:
+
+```{r}
+aq[3:5,]
+aq[3:5, Wind]
+```
+
+
+```{r}
+aq |> slice(3:5,)
+
+aq |> select(Wind) |> slice(3:5,)
+```
+
+To select rows 3, 7, and 15:
+To select all rows except rows 3, 7, and 15:
+
+
+```{r}
+aq[c(3, 7, 15),]
+aq[-c(3, 7, 15),]
+```
+
+```{r}
+aq |> slice(c(3, 7, 15))
+aq |> slice(-c(3, 7, 15))
+```
+
+### Filtering using conditions
+
+Filtering is often done using conditions, e.g., to select observations with certain properties. Here are some examples:
+
+To select rows where Temp is greater than 95:
+
+```{r}
+aq[Temp>95,]
+```
+
+```{r}
+aq |> filter(Temp>95)
+```
+
+To select rows where Month is 6 (June):
+
+```{r}
+aq[Month==6,]
+```
+
+```{r}
+aq |> filter(Month==6)
+```
+
+To select rows where Temp is greater than 90 and Month is 6 (June):
+
+```{r}
+aq[Temp>90 & Month==6,]
+```
+
+```{r}
+aq |> filter(Temp>90, Month==6)  #also ok using &
+```
+
+To select rows where Temp is between 80 and 90 (including 80 and 90):
+
+```{r}
+aq[Temp %between% c(80, 90),]
+aq[Temp>=80 & Temp<=90,]
+```
+
+
+```{r}
+aq |> filter(between(Temp,80,90))
+aq |> filter(Temp>=80 & Temp<=90)
+```
+
+
+To select the 4 rows with the highest Temp:
+
+```{r}
+aq[frankv(-Temp, ties.method = "min") <= 5, ]   # frankv??? What is that?????
+```
+It returns 7????  -> Because some have the same value (94 and 93)
+
+```{r}
+aq |> top_n(5, Temp)
+```
+
+
+To remove duplicate rows:
+
+```{r}
+unique(aq)
+```
+```{r}
+aq |> distinct()
+```
+
+To remove rows with missing data (NA values) in at least one variable:
+
+```{r}
+na.omit(aq)
+```
+
+```{r}
+#library(tidyr)
+
+aq |> drop_na()
+```
+
+To remove rows with missing Ozone values:
+
+```{r}
+na.omit(aq, "Ozone")
+```
+
+```{r}
+#library(tidyr)
+
+aq |> drop_na("Ozone")
+```
+
+At times, you want to filter your data based on whether the observations are connected to observations in a different dataset.
+Such filters are known as **semijoins** and **antijoins**. They are discussed in **Section 5.12.4**.
+
+
+
 
 
