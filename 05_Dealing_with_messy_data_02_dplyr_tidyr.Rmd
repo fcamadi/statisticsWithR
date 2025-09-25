@@ -830,6 +830,173 @@ At times, you want to filter your data based on whether the observations are con
 Such filters are known as **semijoins** and **antijoins**. They are discussed in **Section 5.12.4**.
 
 
+### Selecting rows at random
+
+In some situations, for instance when training and evaluating machine learning models, you may wish to draw a random sample from your data. 
+This is done using the **sample** (data.table) and **sample_n** (dplyr) functions.
+
+To select five rows at random:
+
+```{r}
+aq[sample(.N, 5),]
+```
+
+```{r}
+aq |> sample_n(5)
+```
+
+
+### Using regular expressions to select rows
+
+In some cases, particularly when working with text data, you’ll want to filter using regular expressions (see Section 5.5.3). 
+data.table has a convenience function called **%like%** that can be used to call **grepl** in an alternative (less opaque?) way. 
+With dplyr we use **grepl** in the usual fashion. To have some text data to try this out on, we’ll use this data frame, which contains descriptions of some dogs:
+
+```{r}
+dogs <- data.table(Name = c("Bianca", "Bella", "Mimmi", "Daisy",
+                            "Ernst", "Smulan"),
+                 Breed = c("Greyhound", "Greyhound", "Pug", "Poodle",
+                           "Bedlington Terrier", "Boxer"),
+                 Desc = c("Fast, playful", "Fast, easily worried",
+                          "Intense, small, loud",
+                          "Majestic, protective, playful",
+                          "Playful, relaxed",
+                          "Loving, cuddly, playful"))
+View(dogs)
+```
+
+To select all rows with names beginning with B:
+
+```{r}
+dogs[Name %like% "^B",]
+#dogs[Name %like% "^B",c(Name, Breed)]
+```
+
+
+```{r}
+# or:
+dogs[grepl("^B", Name),]
+```
+
+```{r}
+#dogs |> filter(grepl("B[a-z]",Name))
+dogs |> filter(grepl("^B.",Name))
+```
+
+To select all rows where Desc includes the word playful:
+
+```{r}
+dogs[Desc %like% "[pP]layful",]
+```
+
+```{r}
+dogs |> filter(grepl("[pP]layful",Desc))
+```
+
+
+
+
+**Exercise 5.21**
+Download the ucdp-onesided-191.csv data file from the book’s web page. It contains data about international attacks on civilians by governments 
+and formally organised armed groups during the period 1989-2018, collected as part of the Uppsala Conflict Data Program (Eck & Hultman, 2007; Petterson et al., 2019). 
+Among other things, it contains information about the actor (attacker), fatality rate, and attack location. Load the data and check its structure.
+
+```{r}
+library(dplyr)
+library(data.table)
+
+file_path <- "data/ucdp-onesided-191.csv"
+
+ucdp <- fread(file_path)
+
+str(ucdp)
+```
+
+```{r}
+head(ucdp)
+```
+
+
+- Filter the rows so that only conflicts that took place in Colombia are retained. How many different actors were responsible for attacks in Colombia during the period?
+
+```{r}
+colombia <- ucdp[ location == "Colombia",]
+
+unique(colombia$actor_name)
+```
+```{r}
+ucdp |> 
+  filter(location == "Colombia") -> colombia
+
+unique(colombia$actor_name)
+```
+
+
+- Using the best_fatality_estimate column to estimate fatalities, calculate the number of worldwide fatalities caused by government attacks on civilians during 1989-2018.
+
+```{r}
+gov <- ucdp[actor_name %like% "[gG]overnment",]
+```
+
+
+```{r}
+ucdp |> 
+  filter(grepl("[gG]overnment", actor_name)) -> gov
+```
+
+to list the governments involved in attacks on civilians:
+
+```{r}
+unique(gov$actor_name)
+```
+
+Not the US??? What a s...t archive.
+
+To estimate the number of fatalities cause by these attacks, we sum the fatalities from each attack:
+
+```{r}
+sum(gov$best_fatality_estimate)
+```
+
+
+
+**Exercise 5.22**
+Load the oslo-biomarkers.xlsx data from Exercise 5.8. Use data.table and/or dplyr to do the following:
+
+```{r}
+library(dplyr)
+library(data.table)
+library(openxlsx)
+
+file_path <- "data/oslo-biomarkers.xlsx"
+
+oslo <- as.data.table(read.xlsx(file_path))
+```
+
+- Select only the measurements from blood samples taken at 12 months.
+
+```{r}
+oslo[PatientID.timepoint %like% "months",]
+```
+
+```{r}
+oslo |> filter(grepl("months", PatientID.timepoint))
+```
+
+- Select only the measurements from the patient with ID number 6.
+
+```{r}
+oslo[PatientID.timepoint %like% "^6[-]",]
+```
+
+```{r}
+oslo |> filter(grepl("^6[-]", PatientID.timepoint))
+```
+
+
+
+
+
 
 
 
