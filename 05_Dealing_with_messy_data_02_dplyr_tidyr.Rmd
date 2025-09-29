@@ -994,7 +994,356 @@ oslo |> filter(grepl("^6[-]", PatientID.timepoint))
 ```
 
 
+## 5.9 Subsetting: select columns
 
+Another common situation is that you want to remove some variables from your data. Perhaps the variables aren’t of interest in a particular analysis
+that you’re going to perform, or perhaps you’ve simply imported more variables than you need. As with rows, this can be done using numbers, names, 
+or regular expressions. Let’s look at some examples using the aq data:
+
+```{r}
+library(data.table)
+library(dplyr)
+
+aq <- data.table(airquality)
+```
+
+
+### Selecting a single column
+
+When selecting a single column from a data frame, you sometimes want to extract the column as a vector and sometimes as a single-column data frame 
+(for instance, if you are going to pass it to a function that takes a data frame as input).
+You should be a bit careful when doing this, to make sure that you get the column in the correct format:
+
+
+With data.table:
+
+```{r}
+# Return a vector:
+#aq$Temp <- that is R base
+# or
+aq[, Temp]
+```
+
+```{r}
+# Return a data.table:
+aq[, "Temp"]
+```
+
+With dplyr:
+
+```{r}
+# Return a vector:
+#aq$Temp
+# or
+aq |> pull(Temp)
+```
+
+
+```{r}
+# Return a tibble:
+aq |> select(Temp)
+```
+
+### Selecting multiple columns
+
+Selecting multiple columns is more straightforward, as the object that is returned always will be a data frame. Here are some examples.
+
+```{r}
+aq[, .(Temp, Month, Day)]
+```
+
+
+```{r}
+aq |> select(Temp, Month, Day)
+```
+
+To select all columns between Wind and Month:
+
+```{r}
+aq[, Wind:Month]
+```
+
+
+```{r}
+aq |> select(Wind:Month)
+```
+
+
+To select all columns except Month and Day:
+
+```{r}
+aq[, -c("Month", "Day")]
+```
+
+
+```{r}
+#aq |> select(-Month, -Day)
+aq |> select(-c(Month, Day))
+```
+
+
+To select all numeric variables (which for the aq data is all variables!):
+
+```{r}
+aq[, .SD, .SDcols = is.numeric]
+```
+
+
+```{r}
+aq |> select_if(is.numeric)
+```
+
+To remove columns with missing (NA) values:
+
+```{r}
+aq[, .SD, .SDcols = !anyNA]    # <- whattttt ?????
+```
+
+
+```{r}
+aq |> select_if(~all(!is.na(.)))
+```
+
+
+
+### Using regular expressions to select columns
+
+In data.table, using regular expressions to select columns is done using grep.
+dplyr differs in that it has several convenience functions for selecting columns, like starts_with, ends_with, contains. 
+As an example, we can select variables the name of which contains the letter n:
+
+With data.table:
+```{r}
+vars <- grepl("n", names(aq))
+aq[, ..vars]
+```
+
+With dplyr:
+```{r}
+# contains is a convenience function for checking if a name contains a string:
+aq |> select(contains("n"))
+
+# matches can be used with any regular expression:
+aq |> select(matches("n"))  
+```
+
+
+### Subsetting using column numbers
+
+It is also possible to subset using column numbers, but you need to be careful if you want to use that approach.
+Column numbers can change, for instance if a variable is removed from the data frame. More importantly, however, 
+using column numbers can yield different results depending on what type of data table you’re using.
+Let’s have a look at what happens if we use this approach with different types of data tables:
+
+```{r}
+# data.frame:
+aq <- as.data.frame(airquality)
+str(aq[,2])
+```
+
+
+```{r}
+# data.table:
+aq <- as.data.table(airquality)
+str(aq[,2])
+```
+
+
+```{r}
+# tibble:
+aq <- as_tibble(airquality)
+str(aq[,2])
+```
+
+As you can see, aq[, 2] returns a vector, a data table or a tibble, depending on what type of object aq is.
+Unfortunately, this approach is used by several R packages and can cause problems because it may return the wrong type of object.
+
+A better approach is to use **aq[[2]]**, which works the same for data frames, data tables, and tibbles, returning a vector:
+
+```{r}
+# data.frame:
+aq <- as.data.frame(airquality)
+str(aq[[2]])
+```
+
+
+```{r}
+# data.table:
+aq <- as.data.table(airquality)
+str(aq[[2]])
+```
+
+
+```{r}
+# tibble:
+aq <- as_tibble(airquality)
+str(aq[[2]])
+```
+
+
+**Exercise 5.23**
+
+Return to the ucdp-onesided-191.csv data from Exercise 5.21.
+To have a cleaner and less bloated dataset to work with, it can make sense to remove some columns.
+Select only the actor_name, year, best_fatality_estimate and location columns.
+
+```{r}
+library(dplyr)
+library(data.table)
+
+file_path <- "data/ucdp-onesided-191.csv"
+  
+ucdp <- fread(file_path)
+```
+
+
+```{r}
+ucdp[, .(actor_name, year, best_fatality_estimate, location)]
+```
+
+```{r}
+ucdp |> select(actor_name, year, best_fatality_estimate, location)
+```
+
+
+## 5.10 Sorting
+
+Sometimes you don’t want to filter rows but rearrange their order according to their values for some variable. 
+Similarly, you may want to change the order of the columns in your data. I often do this after merging data 
+from different tables (as we’ll do in Section 5.12).
+This is often useful for presentation purposes but can at times also aid in analyses.
+
+### Changing the column order
+
+It is straightforward to change column positions using **setcolorder** in data.table and **relocate** in dplyr.
+
+To put Month and Day in the first two columns, without rearranging the other columns:
+
+```{r}
+setcolorder(aq, c("Month", "Day"))
+```
+
+```{r}
+aq |> relocate("Month", "Day")
+```
+
+Remember with dyplr we don't modify the dataset:
+
+```{r}
+head(aq)
+```
+
+```{r}
+aq |> relocate("Month", "Day") -> aq  # now yes, it is modified
+
+head(aq)
+```
+
+### Changing the row order
+
+In data.table, **order** is used for sorting rows, and in dplyr, **arrange** is used (sometimes in combination with desc). 
+The syntax differs depending on whether you wish to sort your rows in ascending or descending order. We will illustrate this using the airquality data.
+
+```{r}
+library(data.table)
+library(dplyr)
+
+aq <- data.table(airquality)
+```
+
+First of all, if you’re just looking to sort a single vector, rather than an entire data frame, the quickest way to do so is to use sort:
+
+```{r}
+sort(aq$Wind)
+sort(aq$Wind, decreasing = TRUE)
+
+sort(c("C", "B", "A", "D"))
+```
+
+If you’re looking to sort an entire data frame by one or more variables, you need to move beyond sort. To sort rows by Wind (ascending order):
+
+```{r}
+aq[order(Wind),]
+```
+
+```{r}
+aq |> arrange(Wind)
+```
+
+To sort rows by Wind (descending order):
+
+```{r}
+aq[order(-Wind),] # desc. order
+```
+
+```{r}
+aq |> arrange(-Wind)
+# or
+aq |> arrange(desc(Wind))
+```
+
+To sort rows, first by Temp (ascending order) and then by Wind (descending order):
+
+```{r}
+aq[order(Temp, -Wind),]
+```
+
+
+```{r}
+aq |> arrange(Temp, desc(Wind))
+```
+
+
+**Exercise 5.24**
+Load the oslo-biomarkers.xlsx data from Exercise 5.8. Note that it is not ordered in a natural way. Reorder it by patient ID instead.
+
+```{r}
+library(dplyr)
+library(data.table)
+library(openxlsx)
+
+file_path <- "data/oslo-biomarkers.xlsx"
+
+oslo <- as.data.table(read.xlsx(file_path))
+```
+
+First, we split the PatientID.timepoint column:
+
+```{r}
+oslo[, c("PatientID", "timepoint") := tstrsplit(PatientID.timepoint, "-",
+                 fixed = TRUE)]
+```
+
+```{r}
+oslo |> separate(PatientID.timepoint, into = c("PatientID", "timepoint"), sep = "-") -> oslo
+```
+
+Next, we reformat the patient ID to a numeric and sort the table:
+
+```{r}
+oslo[, PatientID := as.numeric(PatientID)] 
+oslo[order(PatientID),]
+```
+
+```{r}
+oslo |> mutate(PatientID = as.numeric(PatientID)) |> 
+          arrange(PatientID)
+```
+
+Finally, we reformat the data from long to wide, keeping the IL-8 and VEGF-A measurements. 
+We store it as oslo2, knowing that we’ll need it again in Exercise 5.26.
+
+```{r}
+oslo2 <- dcast(oslo,
+          PatientID ~ timepoint,
+          value.var = c("IL-8", "VEGF-A"))
+```
+
+```{r}
+oslo |> pivot_wider(id_cols = PatientID, 
+                    names_from = timepoint, 
+                    values_from = c("IL-8", "VEGF-A")) -> oslo2
+```
 
 
 
