@@ -1346,6 +1346,247 @@ oslo |> pivot_wider(id_cols = PatientID,
 ```
 
 
+## 5.11 Reshaping data
+
+The gapminder dataset from the gapminder package contains information about life expectancy, population size and GDP per capita 
+for 142 countries for 12 years from 1952 to 2007. To begin with, let’s have a look at the data:
+
+```{r}
+library(gapminder)
+?gapminder
+
+View(gapminder)
+```
+
+
+Each row contains data for one country and one year, meaning that the data for each country is spread over 12 rows.
+This is known as long data or long format. As another option, we could store it in wide format, where the data is
+formatted so that all observations corresponding to a country are stored on the same row:
+
+Country        Continent   lifeExp1952 lifeExp1957 lifeExp1962 ...
+Afghanistan    Asia         28.8        30.2        32.0       ...
+Albania        Europe       55.2        59.3        64.8       ...
+
+Sometimes, it makes sense to spread an observation over multiple rows (long format), and sometimes it makes more sense
+to spread a variable across multiple columns (wide format). Some analyses require long data, whereas others require wide data.
+And if you’re unlucky, data will arrive in the wrong format for the analysis you need to do. 
+In this section, you’ll learn how to transform your data from long to wide, and back again.
+ 
+ 
+### From long to wide
+
+When going from a long format to a wide format, you choose columns to group the observations by 
+(in the gapminder case: country and maybe also continent), columns to take value names from (lifeExp, pop, and gdpPercap),
+and columns to create variable names from (year).
+
+In data.table, the transformation from long to wide is done using the **dcast** function. 
+dplyr does not contain functions for such transformations, but its sibling, the tidyverse package **tidyr**, does.
+
+The tidyr function used for long-to-wide formatting is **pivot_wider**. First, we convert the gapminder data frame to a data.table object:
+
+
+```{r}
+library(data.table)
+library(tidyr)
+
+gm <- as.data.table(gapminder)
+
+head(gm)
+```
+
+To transform the gm data from long to wide and store it as gm_wide:
+
+With data.table:
+
+```{r}
+gm_wide <- dcast(gm, country + continent ~ year,
+             value.var = c("pop", "lifeExp", "gdpPercap"))
+
+head(gm_wide)
+```
+
+With tidyr:
+
+```{r}
+gm |> pivot_wider(id_cols = c(country, continent),
+                  names_from = year,
+                  values_from = c(pop, lifeExp, gdpPercap)) -> gm_wide_2
+
+head(gm_wide_2)
+```
+
+
+### From wide to long
+
+We’ve now seen how to transform the long format gapminder data to the wide format gmw data. But what if we want to go from wide format to long?
+Let’s see if we can transform gmw back to the long format.
+
+In data.table, wide-to-long formatting is done using **melt**, and in dplyr it is done using **pivot_longer**.
+
+To transform the gmw data from long to wide:
+
+With data.table:
+
+```{r}
+gm_original <- melt(gm_wide, id.vars = c("country", "continent"),
+                    measure.vars = 2:37)
+
+gm_original
+```
+
+This is not the same as the original gm !!!
+
+gm:           1704 obs. of 6 variables
+gm_original:  5112 obs. of 4 variables
+
+
+With tidyr:
+
+```{r}
+gm_wide_2 |> pivot_longer(names(gm_wide_2)[2:37],
+                    names_to = "variable",
+                    values_to = "value") -> gm_original_2
+
+gm_original_2
+```
+
+The resulting data frames are perhaps too long, with each variable (pop, lifeExp, and gdpPercapita) being put on a different row.
+To make it look like the original dataset, we must first split the variable 'variable' (into a column with variable names and column with years) 
+and then make the data frame a little wider again. That is the topic of the next section.
+
+
+### Splitting columns
+
+In the too long gm data that you created at the end of the last section, the observations in the variable column look like pop_1952 and gdpPercap_2007, i.e., 
+are of the form variableName_year. We’d like to split them into two columns: one with variable names and one with years. 
+dplyr has a function called **tstrsplit** for this purpose, and **tidyr** has separate.
+
+To split the variable column at the underscore _, and then reformat gm to look like the original gapminder data:
+
+With data.table:
+
+```{r}
+gm[, c("variable", "year") := tstrsplit(variable,
+                                        "_", fixed = TRUE)]
+gm <- dcast(gm, country + year ~  variable,
+             value.var = c("value"))
+```
+
+With tidyr:
+
+```{r}
+gm |> separate(variable,
+                into = c("variable", "year"),
+                sep = "_") |> 
+       pivot_wider(id_cols = c(country, continent, year),
+                   names_from = variable,
+                   values_from = value) -> gm
+
+gm
+```
+
+what ... ???
+
+
+
+### Merging columns
+
+Similarly, you may at times want to merge two columns, for instance if one contains the day+month part of a date and the other contains the year.
+An example of such a situation can be found in the airquality dataset, where we may want to merge the Day and Month columns into a new Date column.
+Let’s re-create the aq data.table object one last time:
+
+```{r}
+library(data.table)
+library(tidyr)
+library(dplyr)
+
+aq <- as.data.table(airquality)
+```
+
+If we wanted to create a Date column containing the year (1973), month and day for each observation, we could use paste and as.Date:
+
+```{r}
+as.Date(paste(1973, aq$Month, aq$Day, sep = "-"))
+```
+
+The natural data.table approach is just this, whereas tidyr offers a function called **unite** to merge columns, which can be combined with mutate 
+to paste the year to the date. To merge the Month and Day columns with a year and convert it to a Date object:
+
+With data.table:
+
+```{r}
+aq[, Date := as.Date(paste(1973, aq$Month, aq$Day, sep = "-"))]
+```
+
+With tidyr and dplyr:
+
+```{r}
+aq |> unite("Date", Month, Day, sep = "-") |> mutate(Date = as.Date(paste(1973, Date, sep = "-")))
+```
+
+
+
+**Exercise 5.25**
+
+Load the oslo-biomarkers.xlsx data from Exercise 5.8. Then do the following using data.table and/or dplyr/tidyr:
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(data.table)
+library(openxlsx)
+
+
+file_path <- "data/oslo-biomarkers.xlsx"
+
+oslo <- as.data.table(read.xlsx(file_path))
+
+```
+
+
+- Split the PatientID.timepoint column in two parts: one with the patient ID and one with the timepoint.
+
+```{r}
+oslo[, c("PatientID","timepoint") := tstrsplit(PatientID.timepoint, "-", fixed = TRUE)]
+```
+
+```{r}
+oslo |> separate(PatientID.timepoint,
+                 into = c("PatientID", "timepoint"), sep = "-") -> oslo
+```
+
+
+- Sort the table by patient ID, in numeric order.
+
+```{r}
+oslo[, PatientID := as.numeric(PatientID)] # convert to numeric
+
+oslo[order(PatientID),]  # order by that field
+```
+
+
+```{r}
+oslo |> mutate(PatientID = as.numeric(PatientID)) |> 
+          arrange(PatientID)
+```
+
+
+- Reformat the data from long to wide, keeping only the IL-8 and VEGF-A measurements.
+
+```{r}
+oslo2 <- dcast(oslo,
+          PatientID ~ timepoint,
+          value.var = c("IL-8", "VEGF-A"))
+```
+
+```{r}
+oslo |> pivot_wider(id_cols = PatientID, names_from = timepoint,
+           values_from = c("IL-8", "VEGF-A")) -> oslo2
+```
+
+
+We save the resulting data frame – we will need it again in Exercise 5.26.
+
 
 
 
