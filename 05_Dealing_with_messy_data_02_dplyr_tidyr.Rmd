@@ -1589,4 +1589,371 @@ We save the resulting data frame – we will need it again in Exercise 5.26.
 
 
 
+## 5.12 Merging data from multiple tables
+
+It is common that data is spread over multiple tables: different sheets in Excel files, different .csv files, 
+or different tables in databases. Consequently, it is important to be able to merge data from different tables.
+
+As a first example, let’s study the sales datasets available from the book’s web page: sales-rev.csv and sales-weather.csv. 
+The first dataset describes the daily revenue for a business in the first quarter of 2020, and the second describes
+the weather in the region (somewhere in Sweden) during the same period40. 
+Store their respective paths as file_path1 and file_path2 and then load them:
+
+
+```{r}
+file_path1 <- "data/sales-rev.csv"
+file_path2 <- "data/sales-weather.csv"  
+
+rev_data <- read.csv(file_path1, sep = ";")
+weather_data <- read.csv(file_path2, sep = ";")
+```
+
+
+```{r}
+str(rev_data)
+View(rev_data)
+```
+
+
+```{r}
+str(weather_data)
+View(weather_data)
+
+```
+
+
+Next, we wish to subtract three subsets: the revenue in January (rev_jan), the revenue in February (rev_feb),
+and the weather in January (weather_jan).
+
+With data.table:
+
+```{r}
+rev_jan <- rev_data[rev_data$DATE %between% c("2020-01-01", "2020-01-31"),]
+rev_feb <- rev_data[rev_data$DATE %between% c("2020-02-01", "2020-02-29"),]
+
+weather_jan <- weather_data[weather_data$DATE %between% c("2020-01-01", "2020-01-31"),]
+```
+
+With dplyr:
+
+```{r}
+rev_data |>
+  filter(between(as.Date(rev_data$DATE), as.Date("2020-01-01"), as.Date("2020-01-31"))) -> rev_jan
+
+rev_data |> 
+  filter(between(as.Date(rev_data$DATE), as.Date("2020-02-01"), as.Date("2020-02-29"))) -> rev_feb
+
+weather_data |> 
+  filter(between(as.Date(weather_data$DATE), as.Date("2020-01-01"), as.Date("2020-01-31"))) -> weather_jan
+```
+
+
+A quick look at the structure of the data reveals some similarities:
+
+```{r}
+str(rev_jan)
+```
+
+
+```{r}
+str(rev_feb)
+```
+
+
+```{r}
+str(weather_jan)
+```
+
+
+The rows in rev_jan correspond one-to-one to the rows in weather_jan, with both tables being sorted in exactly the same way.
+We could therefore bind their columns, i.e., add the columns of weather_jan to rev_jan.
+
+rev_jan and rev_feb contain the same columns. We could therefore bind their rows, i.e., add the rows of rev_feb to rev_jan. To perform these operations, we can use either base R or dplyr:
+
+With base R:
+
+```{r}
+# Join columns of datasets that have the same rows:
+cbind(rev_jan, weather_jan)
+
+# Join rows of datasets that have the same columns:
+rbind(rev_jan, rev_feb)
+```
+
+
+With dplyr:
+
+```{r}
+# Join columns of datasets that have the same rows:
+bind_cols(rev_jan, weather_jan)
+
+# Join rows of datasets that have the same columns:
+bind_rows(rev_jan, rev_feb)
+```
+
+
+
+### Merging tables using keys
+
+A closer look at the business revenue data reveals that rev_data contains observations from 90 days,
+whereas weather_data only contains data for 87 days; revenue data for 2020-03-01 is missing, and weather data 
+for 2020-02-05, 2020-02-06, 2020-03-10, and 2020-03-29 are missing.
+
+Suppose that we want to study how weather affects the revenue of the business. In order to do so, 
+we must merge the two tables. We cannot use a simple column bind, because the two tables have different numbers of rows. 
+If we attempt a bind, R will produce a merged table by recycling the first few rows from rev_data – note that
+the two DATE columns aren’t properly aligned:
+
+
+```{r}
+tail(cbind(rev_data, weather_data))
+```
+
+Clearly, this is not the desired output! We need a way to connect the rows in rev_data with the right rows in weather_data.
+Put differently, we need something that allows us to connect the observations in one table to those in another.
+Variables used to connect tables are known as keys, and must in some way uniquely identify observations. 
+In this case the DATE column gives us the key – each observation is uniquely determined by its DATE.
+So to combine the two tables, we can combine rows from rev_data with the rows from weather_data that have the same DATE values.
+In the following sections, we’ll look at different ways of merging tables using data.table and dplyr.
+
+But first, a word of warning: finding the right keys for merging tables is not always straightforward.
+For a more complex example, consider the nycflights13 package, which contains five separate but connected datasets:
+
+```{r}
+library(nycflights13)
+
+?airlines  # Names and carrier codes of airlines.
+?airports  # Information about airports.
+?flights   # Departure and arrival times and delay information for
+           # flights.
+?planes    # Information about planes.
+?weather   # Hourly meteorological data for airports.
+```
+
+
+Perhaps you want to include weather information with the flight data, to study how weather affects delays.
+Or perhaps you wish to include information about the longitude and latitude of airports (from airports) in the weather dataset. 
+In airports, each observation can be uniquely identified in three different ways: either by its airport code faa, 
+its name name, or its latitude and longitude, lat and lon:
+
+```{r}
+?airports
+
+head(airports)
+```
+
+If we want to use either of these options as a key when merging with airports data with another table, 
+that table should also contain the same key.
+
+The weather data requires no less than four variables to identify each observation: origin, month, day and hour:
+
+```{r}
+?weather
+
+head(weather)
+```
+
+### Inner and outer joins
+
+An operation that combines columns from two tables is called a join. There are two main types of joins: inner joins and outer joins.
+
+- **Inner joins**: create a table containing all observations for which the key appeared in both tables.
+So if we perform an inner join on the rev_data and weather_data tables using DATE as the key, it won’t contain data for the days
+that are missing from either the revenue table or the weather table.
+
+In contrast, outer joins create a table retaining rows, even if there is no match in the other table. There are three types of outer joins:
+
+- **Left join**: retains all rows from the first table. In the revenue example, this means all dates present in rev_data.
+- **Right join**: retains all rows from the second table. In the revenue example, this means all dates present in weather_data.
+. **Full join**: retains all rows present in at least one of the tables. In the revenue example, this means all dates present in at least one of rev_data and weather_data.
+
+We will use the rev_data and weather_data datasets to exemplify the different types of joins.
+To begin with, we convert them to data.table objects (which is optional if you wish to use dplyr):
+
+```{r}
+library(data.table)
+library(dplyr)
+
+rev_data <- as.data.table(rev_data)
+weather_data <- as.data.table(weather_data)
+```
+
+
+Remember that revenue data for 2020-03-01 is missing, and weather data for 2020-02-05, 2020-02-06, 2020-03-10, and 2020-03-29 are missing. 
+This means that out of the 91 days in the period, only 86 have complete data. If we perform an inner join, the resulting table
+should therefore have 86 rows.
+
+To perform an inner join of rev_data and weather_data using DATE as key:
+
+With data.table:
+
+```{r}
+merge(rev_data, weather_data, by = "DATE")
+
+# Or:
+#setkey(rev_data, DATE)
+#rev_data[weather_data, nomatch = 0]
+```
+
+With dplyr:
+
+```{r}
+rev_data |> inner_join(weather_data,  by = "DATE")
+```
+
+A left join will retain the 90 dates present in rev_data. To perform a(n outer) left join of rev_data and weather_data using DATE as key:
+
+```{r}
+merge(rev_data, weather_data, all.x = TRUE, by = "DATE")
+
+# Or:
+#setkey(weather_data, DATE)
+#weather_data[rev_data]
+```
+
+
+```{r}
+rev_data |> left_join(weather_data, by = "DATE")
+```
+
+A right join will retain the 87 dates present in weather_data. To perform a(n outer) right join of rev_data and weather_data using DATE as key:
+
+```{r}
+merge(rev_data, weather_data, all.y = TRUE, by = "DATE")
+
+# Or:
+#setkey(rev_data, DATE)
+#rev_data[weather_data]
+```
+
+```{r}
+rev_data |> right_join(weather_data, by = "DATE")
+```
+
+A full join will retain the 91 dates present in at least one of rev_data and weather_data. To perform a(n outer) full join of rev_data and weather_data using DATE as key:
+
+```{r}
+merge(rev_data, weather_data, all = TRUE, by = "DATE")
+```
+
+
+```{r}
+rev_data |> full_join(weather_data, by = "DATE")
+```
+
+
+### Semijoins and antijoins
+
+Semijoins and antijoins are similar to joins but work on observations rather than variables. That is, they are used
+for filtering one table using data from another table:
+
+- Semijoin: retains all observations in the first table that have a match in the second table.
+
+- Antijoin: retains all observations in the first table that do not have a match in the second table.
+
+The same thing can be achieved using the filtering techniques of Section 5.8, but semijoins and antijoins are simpler
+to use when the filtering relies on conditions from another table.
+
+Suppose that we are interested in the revenue of our business for days in February with subzero temperatures. First, we can create a table called filter_data listing all such days:
+
+With data.table:
+
+```{r}
+rev_data$DATE <- as.Date(rev_data$DATE)
+weather_data$DATE <- as.Date(weather_data$DATE)
+
+filter_data <- weather_data[TEMPERATURE < 0 & DATE %between% c("2020-02-01","2020-02-29"),]
+```
+
+With dplyr:
+
+```{r}
+rev_data$DATE <- as.Date(rev_data$DATE)
+weather_data$DATE <- as.Date(weather_data$DATE)
+
+weather_data |> filter(TEMPERATURE < 0, between(DATE, as.Date("2020-02-01"), as.Date("2020-02-29"))) -> filter_data
+```
+
+Next, we can use a semijoin to extract the rows of rev_data corresponding to the days of filter_data:
+
+```{r}
+setkey(rev_data, DATE)
+
+rev_data[rev_data[filter_data, which = TRUE]]
+```
+
+
+```{r}
+rev_data |> semi_join(filter_data, by = "DATE")
+```
+
+
+If instead we wanted to find all days except the days in February with subzero temperatures, we could perform an antijoin:
+
+```{r}
+setkey(rev_data, DATE)
+rev_data[!filter_data]
+```
+
+
+```{r}
+rev_data |> anti_join(filter_data, by = "DATE")
+```
+
+
+
+**Exercise 5.26**
+We return to the oslo-biomarkers.xlsx data from Exercises 5.8 and 5.25. 
+Load the data frame that you created in Exercise 5.25 (or copy the code from its solution). 
+You should also load the oslo-covariates.xlsx data from the book’s web page; it contains information about the patients, 
+such as age, gender, and smoking habits.
+
+```{r}
+library(dplyr)
+library(data.table)
+library(openxlsx)
+
+file_path_oslo <- "data/oslo-biomarkers.xlsx"
+file_path_covar <- "data/oslo-covariates.xlsx"
+  
+olso <- as.data.table(read.xlsx(file_path_oslo))
+covar <- as.data.table(read.xlsx(file_path_covar))
+```
+
+
+Then do the following using data.table and/or dplyr/tidyr:
+
+- Merge the wide data frame from Exercise 5.25 with the oslo-covariates.xlsx data, using patient ID as key.
+
+First, we merge the wide data frame from Exercise 5.25 with the oslo-covariates.xlsx data, using patient ID as key.
+A left join, where we only keep data for patients with biomarker measurements, seems appropriate here.
+We see that both datasets have a column named PatientID, which we can use as our key.
+```{r}
+str(oslo2)
+```
+
+```{r}
+oslo2$PatientID <- as.integer(oslo2$PatientID)
+```
+
+```{r}
+oslo2 |> left_join(covar, by = "PatientID")
+```
+
+- Use the oslo-covariates.xlsx data to select data for smokers from the wide data frame from Exercise 5.25.
+
+Next, we use the oslo-covariates.xlsx data to select data for smokers from the wide data frame using a semijoin. The Smoker.(1=yes,.2=no) column contains information about smoking habits. First we create a table for filtering:
+
+```{r}
+covar |>  filter(`Smoker.(1=yes,.2=no)`== 1) -> filter_data
+```
+
+Next, we perform the semijoin:
+
+```{r}
+oslo2 |> semi_join(filter_data, by = "PatientID")
+```
+
+
+
 
