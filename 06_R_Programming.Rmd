@@ -1,0 +1,441 @@
+---
+title: "06_R_Programming"
+author: "Fran Camacho"
+date: "2025-10-05"
+output: word_document
+---
+
+
+# 6 R programming
+
+The tools in Chapters 2-5 will allow you to manipulate, summarise, and visualise your data in all sorts of ways.
+...
+
+After working with the material in this chapter, you will be able to use R to:
+
+- Write your own R functions,
+- Use several new pipe operators,
+- Use conditional statements to perform different operations depending on whether or not a condition is satisfied,
+- Iterate code operations multiple times using loops,
+- Iterate code operations multiple times using functionals, and
+- Measure the performance of your R code.
+
+## 6.1 Functions
+
+...
+
+### Creating functions
+
+function_name <- function(argument1, argument2, ...)
+{
+      # ...
+      # Some rows with code that creates some_object
+      # ...
+      return(some_object)
+}
+
+```{r}
+average <- function(x)
+{
+  avg <- sum(x)/length(x)
+  return(avg)
+}
+```
+
+
+### Local and global variables
+
+... 
+This is because R distinguishes between global variables and local variables.
+A global variable is created in the global environment outside a function. 
+It is available to all functions (these are the variables that you can see in the Environment panel in RStudio).
+A local variable is created in the local environment inside a function.
+...
+Functions can access global variables
+...
+But operations performed on global variables inside functions won’t affect the global variable
+...
+
+As a side note, it is possible to write functions that don’t end with return. 
+In that case, the output (i.e., what would be written in the Console if you’d run the code there)
+from the last line of the function will automatically be returned. I prefer to (almost) always 
+use return though, as it is easy to accidentally make the function return nothing by finishing
+it with a line that yields no output.
+
+### More on arguments
+
+...
+It is therefore common to provide default values to arguments, which is done by setting a value
+in the function call. Here is an example of a function that computes xn, using n=2 as the default:
+
+```{r}
+power_n <- function(x, n = 2)  # n = 2 <- default value
+{
+      return(x^n)
+}
+```
+
+
+...
+
+
+It is possible to pass a function as an argument. Here is a function that takes a vector and a function
+as input and applies the function to the first two elements of the vector:
+
+```{r}
+apply_to_first2 <- function(x, func)
+{
+      result <- func(x[1:2])
+      return(result)
+}
+```
+
+
+By supplying different functions to apply_to_first2, we can make it perform different tasks:
+
+```{r}
+x <- c(4, 5, 6)
+apply_to_first2(x, sqrt)
+apply_to_first2(x, is.character)
+apply_to_first2(x, power_n)
+```
+
+But if we instead use the vector c(4, NA, 6), the function returns NA:
+
+```{r}
+x <- c(4, NA, 6)
+apply_to_first2(x, sum)
+```
+
+
+Perhaps we’d like to pass na.rm = TRUE to sum to ensure that we get a numeric result, if at all possible. 
+This can be done by adding **...** to the list of arguments for both functions, which indicates
+additional parameters (to be supplied by the user) that will be passed to func:
+
+```{r}
+apply_to_first2 <- function(x, func, ...)
+{
+      result <- func(x[1:2], ...)
+      return(result)
+}
+
+x <- c(4, NA, 6)
+apply_to_first2(x, sum)
+apply_to_first2(x, sum, na.rm = TRUE)
+```
+
+
+**Exercise 6.1**
+Write a function that converts temperature measurements in degrees Fahrenheit to degrees Celsius, 
+and apply it to the Temp column of the airquality data.
+
+```{r}
+faren2celsius <- function(x) {
+  if (is.numeric(x)) {
+    c <- (x-32)*5/9
+    return(c)
+  } else {
+    print("Input not valid")
+  }
+}
+```
+
+```{r}
+faren2celsius(airquality$Temp)[1:5]
+```
+
+```{r}
+faren2celsius("patata")
+```
+
+
+**Exercise 6.2**
+Practice writing functions by doing the following:
+
+- Write a function that takes a vector as input and returns a vector containing its minimum and maximum, 
+without using min and max.
+
+```{r}
+minmax <- function(x) {
+  # Sort x so that the minimum becomes the first element
+  # and the maximum becomes the last element:
+  sorted_x <- sort(x)
+  min_x <- sorted_x[1]
+  max_x <- sorted_x[length(sorted_x)]
+  return(c(min_x, max_x))
+}
+
+# Check that it works:
+x <- c(3, 8, 1, 4, 5)
+minmax(x) # Should be 1 and 8
+```
+
+- Write a function that computes the mean of the squared values of a vector using mean, 
+and that takes additional arguments that it passes on to mean (e.g., na.rm).
+
+```{r}
+mean2 <- function(x, ...) {
+  return(mean(x^2, ...))
+}
+
+# Check that it works:
+x <- c(3, 2, 1)
+mean2(x) # Should be 14/3=4.666...
+
+# With NA:
+x <- c(3, 2, NA)
+mean2(x) # Should be NA
+mean2(x, na.rm = TRUE) # Should be 13/2=6.5
+```
+
+
+### Namespaces
+
+It is possible, and even likely, that you will encounter functions in packages with the same name as functions in other packages.
+Or, similarly, that there are functions in packages with the same names as those you have written yourself.
+This is of course a bit of a headache, but it’s actually something that can be overcome without changing the names of the functions.
+Just like variables can live in different environments, R functions live in namespaces, usually corresponding to either the global environment 
+or the package they belong to. By specifying which namespace to look for the function in, you can use multiple functions that all have the same name.
+
+For example, let’s create a function called sqrt. There is already such a function in the base package (see ?sqrt), but let’s do it anyway:
+
+```{r}
+sqrt <- function(x)
+{
+      return(x^10)
+}
+```
+
+If we now apply sqrt to an object, the function that we just defined will be used:
+
+```{r}
+sqrt(4)
+```
+
+But if we want to use the sqrt from base, we can specify that by writing the namespace (which almost always is the package name)
+followed by :: and the function name:
+
+```{r}
+base::sqrt(4)
+```
+
+
+The :: notation can also be used to call a function or object from a package without loading the package’s namespace:
+
+```{r}
+msleep # Doesn't work if ggplot2 isn't loaded
+ggplot2::msleep # Works, without loading the ggplot2 namespace!
+```
+
+
+When you call a function, R will look for it in all active namespaces, following a particular order. 
+To see the order of the namespaces, you can use search:
+
+```{r}
+search()
+```
+
+Note that the global environment is first in this list – meaning that the functions that you define always will be preferred
+to functions in packages.
+
+All this being said, note that it is bad practice to give your functions and variables the same names as common functions.
+Don’t name them mean, c, or sqrt. Nothing good can ever come from that sort of behaviour.
+
+
+### Sourcing other scripts
+
+If you want to reuse a function that you have written in a new script, you can of course copy it into that script.
+But if you then make changes to your function, you will quickly end up with several different versions of it.
+A better idea can therefore be to put the function in a separate script, which you then can call in each script where you need the function. 
+This is done using **source**. If, for instance, you have code that defines some functions in a file called helper-functions.R 
+in your working directory, you can run it (thus defining the functions) when the rest of your code is run by adding 
+source("helper-functions.R") to your code.
+
+Another option is to create an R package containing the function, but that is beyond the scope of this book. Should you choose to go down that route, I highly recommend reading R Packages by Wickham and Bryan.
+
+
+## 6.2 More on pipes
+
+We have seen how the pipe operator **|>** can be used to chain functions together. But there are also other pipe operators 
+that are useful. In this section we’ll look at some of them, and see how you can create functions using pipes.
+
+### Ce ne sont pas non plus des pipes
+
+Although |> is the pipe operator that we use the most, there are situations where other pipe operators are more appropriate.
+The **magrittr** package provides a number of other pipes that are useful in certain situations.
+
+One example is when you want to pass variables rather than an entire dataset to the next function.
+This is needed for instance if you want to use cor to compute the correlation between two variables,
+because cor takes two vectors as input instead of a data frame. Previously, we solved this by using **with**:
+
+```{r}
+library(dplyr)
+
+airquality |>
+      filter(Temp > 80) |>
+      with(cor(Temp, Wind))
+```
+
+Another option is to use the **%$%** pipe, which passes on the names of all variables in your data frame instead of the actual data frame:
+
+```{r}
+library(magrittr)
+
+airquality |> 
+      filter(Temp > 80) %$% 
+      cor(Temp, Wind)
+```
+
+If you want to modify a variable using a pipe, you can use the compound assignment pipe **%<>%**. 
+The following three lines all yield exactly the same result:
+
+```{r}
+x <- 1:8;   x <- sqrt(x);        x
+x <- 1:8;   x |> sqrt() -> x;    x   
+x <- 1:8;   x %<>% sqrt;         x
+```
+
+As long as the first pipe in the pipeline is the compound assignment operator %<>%, you can combine it with other pipes:
+
+```{r}
+x <- 1:8
+
+x %<>% subset(x > 5) |>
+  sqrt()
+
+x
+```
+
+Sometimes, you want to do something in the middle of a pipeline, like creating a plot, before continuing to the next step in the chain.
+The tee operator **%T>%** can be used to execute a function without passing on its output (if any). Instead, it passes on the output
+to its left. Here is an example:
+
+```{r}
+airquality |> 
+      filter(Temp > 80) %T>%
+      plot() %$% 
+      cor(Temp, Wind)
+```
+
+Note that if we’d used an ordinary pipe |> instead, we’d get an error:
+
+```{r}
+airquality |> 
+      filter(Temp > 80) |> 
+      plot() %$% 
+      cor(Temp, Wind)
+```
+
+The reason is that cor looks for the variables Temp and Wind in the plot object, and not in the data frame.
+The **tee operator** takes care of this by passing on the data from its left side.
+
+When using the tee operator with ggplot, you need to wrap ggplot in curly brackets and in a call to print:
+
+```{r}
+library(ggplot2)
+
+airquality |> 
+      filter(Temp > 80) %T>%
+      {print(ggplot(., aes(Temp, Wind)) + geom_point())} %$% 
+      cor(Temp, Wind)
+```
+
+### Writing functions with pipes
+
+If you will be reusing the same pipeline multiple times, you may want to create a function for it.
+Let’s say that you have a data frame containing only numeric variables, and that you want to create a scatterplot matrix 
+(which can be done using plot) and compute the correlations between all variables (using cor).
+As an example, you could do this for airquality as follows:
+
+```{r}
+airquality %T>% plot |>  cor()
+```
+
+To define a function for this combination of operators, we write:
+
+```{r}
+plot_and_cor <- function(x) { x %T>% plot |>  cor() }
+```
+
+If you only use magrittr pipes in your function, you can write this in a shorter form, without the function(...) part:
+
+```{r}
+plot_and_cor <- . %T>% plot %>% cor
+```
+
+We can now use this function just like any other:
+
+```{r}
+# With the airquality data:
+airquality |> plot_and_cor
+plot_and_cor(airquality)
+
+# With the bookstore data:
+age <- c(28, 48, 47, 71, 22, 80, 48, 30, 31)
+purchase <- c(20, 59, 2, 12, 22, 160, 34, 34, 29)
+bookstore <- data.frame(age, purchase)
+bookstore |> plot_and_cor
+```
+
+Pues no lo parece ...
+
+
+**Exercise 6.3**
+Write a function that takes a data frame as input and uses pipes to print the number of NA values in the data, remove all rows with NA values
+and return a summary of the remaining data.
+
+We use cat to print a message about missing values, sum(is.na(.)) to compute the number of missing values, na.omit to remove rows 
+with missing data and then summary to print the summary:
+
+```{r}
+na_remove <- . %T>% {cat("Missing values:", sum(is.na(.)), "\n")} |>
+                    na.omit |> summary
+  
+na_remove(airquality)
+```
+
+**Exercise 6.4**
+Pipes are operators, that is, functions that take two variables as input and can be written without parentheses 
+(other examples of operators are + and *). You can define your own operators just as you would any other function. 
+For instance, we can define an operator called quadratic that takes two numbers a and b as input and computes the quadratic expression (a+b)^2:
+
+```{r}
+`%quadratic%` <- function(a, b) { (a + b)^2 }
+
+2 %quadratic% 3
+```
+
+Create an operator called %against% that takes two vectors as input and draws a scatterplot of them.
+
+```{r}
+`%against%` <- function(y, x) { plot(x, y) }
+```
+
+Let’s try it out:
+
+```{r}
+airquality$Wind %against% airquality$Temp
+```
+
+Or, if we want to use ggplot2 instead of base graphics:
+
+```{r}
+library(ggplot2)
+
+`%against%` <- function(y, x) { 
+    df <- data.frame(x, y)
+    ggplot(df, aes(x, y)) +
+        geom_point()
+}
+
+airquality$Wind %against% airquality$Temp
+```
+
+
+
+
+
+
+
+
+
