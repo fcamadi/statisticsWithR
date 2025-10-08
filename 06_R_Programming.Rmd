@@ -20,6 +20,16 @@ After working with the material in this chapter, you will be able to use R to:
 - Iterate code operations multiple times using functionals, and
 - Measure the performance of your R code.
 
+
+```{r}
+if (!require(dplyr)) install.packages('dplyr', dependencies = T)
+library(dplyr)
+
+if (!require(tidyr)) install.packages('tidyr', dependencies = T)
+library(tidyr)
+
+```
+
 ## 6.1 Functions
 
 ...
@@ -432,9 +442,803 @@ airquality$Wind %against% airquality$Temp
 ```
 
 
+## 6.3 Checking conditions
+
+Sometimes you’d like your code to perform different operations depending on whether or not a certain condition
+is fulfilled. Perhaps you want it to do something different if there is missing data, if the input is a character vector,
+or if the largest value in a numeric vector is greater than some number.
+In Section 2.11.3 you learned how to filter data using conditions. In this section, you’ll learn how to use
+conditional statements for a number of other tasks.
+
+### if and else
+
+The most important functions for checking whether a condition is fulfilled are if and else. The basic syntax is
+
+**if(condition) { do something } else { do something else }**
+
+...
+
+```{r}
+x <- 0
+if(x != 0) { 1/x } else { cat("Error! Division by zero.") }
+```
+
+You don’t have to write all of the code on the same line, but you must make sure that 
+**the else part is on the same line as the first }**:
+
+```{r}
+if(x == 0) { 
+    cat("Error! Division by zero.")
+} else { 
+    1/x
+}
+```
+
+else if:
+
+```{r}
+if(x == 0) { 
+    cat("Error! Division by zero.")
+} else if(is.infinite((x))) {
+    cat("Error! Division by infinity.")
+} else if(is.na((x))) {
+    cat("Error! Division by NA.")
+} else { 
+    1/x
+}
+```
+
+
+### & and &&
+
+Just as when we used conditions for filtering in Sections 2.11.3 and 5.8.2, it is possible to combine several conditions 
+into one using **& (AND)** and **| (OR)**. However, the & and | operators are vectorised, meaning that they will return
+a vector of logical values whenever possible. This is not desirable in conditional statements, where the condition must 
+evaluate to a single value. Using a condition that returns a vector results in an error message:
+
+```{r}
+if(c(1, 2) == 2) { cat("The vector contains the number 2.\n") }
+
+if(c(2, 1) == 2) { cat("The vector contains the number 2.\n") }
+```
+
+Usually, if a condition evaluates to a vector, it is because you’ve made an error in your code. 
+Remember, if you really need to evaluate a condition regarding the elements in a vector, you can collapse 
+the resulting logical vector to a single value using any or all.
+
+Some texts recommend using the operators && and || instead of & and | in conditional statements.
+These work almost like & and |, but check the conditions on the left-hand and right-hand sides sequentially.
+& and | always evaluate all the conditions that you’re combining, while && and || don’t: && stops as soon as 
+it encounters a FALSE, and || stops as soon as it encounters a TRUE. 
+...
+
+
+### ifelse
+
+It is common that you want to assign different values to a variable depending on whether or not a condition is satisfied:
+
+```{r}
+x <- 2
+
+if(x == 0) { 
+    reciprocal <- "Error! Division by zero."
+} else { 
+    reciprocal <- 1/x
+}
+
+reciprocal
+```
+
+In fact, this situation is so common that there is a special function for it: **ifelse**:
+
+```{r}
+reciprocal <- ifelse(x == 0, "Error! Division by zero.", 1/x)
+
+reciprocal
+```
+
+ifelse evaluates a condition and then returns different answers depending on whether the condition is TRUE or FALSE.
+It can also be applied to vectors, in which case it checks the condition for each element of the vector and returns
+an answer for each element:
+
+```{r}
+x <- c(-1, 1, 2, -2, 3)
+
+ifelse(x > 0, "Positive", "Negative")
+```
+
+
+### switch
+
+For the sake of readability, it is usually a good idea to try to avoid chains of the type if() {} else if() {} else if() {} else {}.
+One function that can be useful for this is switch, which lets you list a number of possible results, 
+either by position (a number) or by name:
+
+```{r}
+position <- 2
+switch(position,
+      "First position",
+      "Second position",
+      "Third position")
+
+name <- "First"
+switch(name,
+      First = "First name",
+      Second = "Second name",
+      Third = "Third name")
+```
+
+You can for instance use this to decide what function should be applied to your data:
+
+```{r}
+x <- 1:3
+y <- c(3, 5, 4)
+
+method <- "nonparametric2"
+
+cor_xy <- switch(method,
+      parametric = cor(x, y, method = "pearson"),
+      nonparametric1 = cor(x, y, method = "spearman"),
+      nonparametric2 = cor(x, y, method = "kendall"))
+
+cor_xy
+```
+
+
+### Failing gracefully
+
+Conditional statements are useful for ensuring that the input to a function you’ve written is of the correct type.
+In Section 6.1.3 we saw that our average function failed if we applied it to a character vector:
+
+```{r}
+average <- function(x)
+{
+      avg <- sum(x)/length(x)
+      return(avg)
+}
+
+average(c("Lady Gaga", "Tool", "Dry the River"))
+```
+
+By using a conditional statement, we can provide a more informative error message. 
+We can check that the input is numeric and, if it’s not, stop the function and print an error message, using stop:
+
+```{r}
+average <- function(x)
+{
+      if(is.numeric(x)) {
+            avg <- sum(x)/length(x)
+            return(avg)
+      } else { 
+            stop("The input must be a numeric vector.")
+      }
+}
+
+average(c(1, 5, 8))
+average(c("Lady Gaga", "Tool", "Dry the River"))
+```
+
+
+**Exercise 6.6**
+Fix the errors in the following code:
+
+```{r}
+x <- c(1, 2, pi, 8)
+
+# Only compute square roots if x exists
+# and contains positive values:
+if(exists(x)) { if(x > 0) { sqrt(x) } }
+```
+
+```{r}
+x <- c(1, 2, pi, 8)
+
+# Only compute square roots if x exists
+# and contains positive values:
+if(exists("x")) { if(all(x > 0)) { sqrt(x) } }   # "x" and all
+```
+
+
+## 6.4 Iteration using loops
+
+...
+
+
+### for loops
+
+...
+
+```{r}
+for(i in 1:5)
+{
+    cat("Iteration", i, "\n")
+}
+```
+
+...
+
+```{r}
+for(word in c("one", "two", "five hundred and fifty five"))
+{
+    cat("Iteration", word, "\n")
+}
+```
+
+Of course, loops are used for so much more than merely printing text on the screen.
+A common use is to perform some computation and then store the result in a vector. 
+In this case, we must first create an empty vector to store the result in, e.g., using **vector**, 
+which creates an empty vector of a specific type and length:
+
+```{r}
+squares <- vector("numeric", 5)
+
+for(i in 1:5)
+{
+    squares[i] <- i^2
+}
+squares
+```
+
+In this case, it would have been both simpler and computationally faster to compute the squared values by running 
+
+**(1:5)^2**. 
+
+This is known as a vectorised solution and is very important in R. We’ll discuss vectorised solutions in detail in Section 6.5.
+
+
+[
+
+Comparison:
+
+```{r}
+n <- 100000000
+
+squares1 <- vector("numeric", n)
+  
+system.time({
+
+
+  for(i in 1:n) {
+    squares1[i] <- i^2
+  }
+})
+
+squares1[1:10]  
+```
+
+```{r}
+n <- 100000000
+
+squares2 <- vector("numeric", n)
+
+system.time({
+  squares2 <- (1:n)^2
+})
+
+ squares2[1:10]  
+```
+
+]
+
+
+When creating the values used for the control variable, we often wish to create different sequences of numbers.
+Two functions that are very useful for this are **seq**, which creates sequences, and **rep**, which repeats patterns:
+
+```{r}
+seq(0, 20)
+seq(0, 50, by = 10)
+seq(0, 50, length.out = 21)
+```
+
+
+```{r}
+rep(1, 4)
+rep(c(1, 2), 4)
+rep(c(1, 2), c(4, 2))
+```
+
+
+Finally, seq_along can be used to create a sequence of indices for a vector of a data frame, which is useful
+if you wish to iterate some code for each element of a vector or each column of a data frame:
+
+```{r}
+seq_along(airquality) # Gives the indices of all columns of the data frame
+
+seq_along(airquality$Temp) # Gives the indices of all elements of the vector
+```
+
+Here is an example of how to use seq_along to compute the mean of each column of a data frame:
+
+```{r}
+# Compute the mean for each column of the airquality data:
+means <- vector("double", ncol(airquality))
+
+# Loop over the variables in airquality:
+for(i in seq_along(airquality))
+{
+      means[i] <- mean(airquality[[i]], na.rm = TRUE)
+}
+
+# Check that the results agree with those from the colMeans function:
+means
+
+colMeans(airquality, na.rm = TRUE)
+```
+
+The line inside the loop could have read means[i] <- mean(airquality[,i], na.rm = TRUE), but that would have caused problems
+if we’d used it with a data.table or tibble object; see Section 5.9.4.
+
+Finally, we can also change the values of the data in each iteration of the loop. Some machine learning methods require
+that the data is standardised, i.e., that all columns have mean 0 and standard deviation 1. 
+This is achieved by subtracting the mean from each variable and then dividing each variable by its standard deviation. 
+We can write a function for this that uses a loop, changing the values of a column in each iteration:
+
+```{r}
+standardise <- function(df, ...) {
+      for(i in seq_along(df))
+      {
+          df[[i]] <- (df[[i]] - mean(df[[i]], ...))/sd(df[[i]], ...)
+      }
+      return(df)
+}
+
+# Try it out:
+aqs <- standardise(airquality, na.rm = TRUE)
+colMeans(aqs, na.rm = TRUE) # Non-zero due to floating point arithmetics!
+
+sd(aqs$Wind)
+```
 
 
 
+**Exercise 6.7**
+
+Practice writing for loops by doing the following:
+
+- Compute the mean temperature for each month in the airquality dataset using a loop rather than an existing function.
+
+```{r}
+months <- unique(airquality$Month)
+meanTemp <- vector("numeric", length(months))
+
+for(i in seq_along(months)) {
+      # Extract data for month[i]:
+      aq <- airquality[airquality$Month == months[i],]
+      
+      # Compute mean temperature:
+      meanTemp[i] <- mean(aq$Temp)
+}
+
+meanTemp
+```
+
+- Use a for loop to compute the maximum and minimum value of each column of the airquality data frame, storing the results in a data frame.
+
+
+```{r}
+results <- data.frame(min = vector("numeric", ncol(airquality)),
+                      max = vector("numeric", ncol(airquality)))
+
+for(i in seq_along(airquality))
+{
+      results$min[i] <- min(airquality[,i], na.rm = TRUE)
+      results$max[i] <- max(airquality[,i], na.rm = TRUE)
+}
+
+# For presentation purposes, we can add the variable names as
+# row names:
+row.names(results) <- names(airquality)
+
+results
+```
+
+- Make your solution to the previous task reusable by writing a function that returns the maximum and minimum value of each column of a data frame.
+
+```{r}
+minmax <- function(df, ...) {
+  results <- data.frame(min = vector("numeric", ncol(df)),
+                        max = vector("numeric", ncol(df)))
+
+  for(i in seq_along(df)) {
+    results$min[i] <- min(df[,i], ...)
+    results$max[i] <- max(df[,i], ...)
+  }
+      
+  # For presentation purposes, we add the variable names as
+  # row names:
+  row.names(results) <- names(airquality)
+      
+  return(results)
+}
+
+# Check that it works:
+minmax(airquality)
+minmax(airquality, na.rm = TRUE)
+```
+
+
+**Exercise 6.8**
+
+Use rep or seq to create the following vectors:
+
+- 0.25 0.5 0.75 1
+
+```{r}
+seq(0.25, 1, length.out = 4)
+```
+
+- 1 1 1 2 2 5
+
+```{r}
+rep(c(1,2,5), c(3,2,1))
+```
+
+
+**Exercise 6.9**
+As an alternative to seq_along(airquality) and seq_along(airquality$Temp),
+we could create the same sequences using 1:ncol(airquality) and 1:length(airquality$Temp).
+Use x <- c() to create a vector of length zero. Then create loops that use seq_along(x) and 1:length(x) 
+as values for the control variable. How many iterations are the two loops run?
+Which solution is preferable?
+
+We could create the same sequences using 1:ncol(airquality) and 1:length(airquality$Temp), but if we accidentally apply those solutions to objects with zero length, we would run into trouble! Let’s see what happens:
+
+```{r}
+x <- c()
+length(x)
+```
+
+Even though there are no elements in the vector, two iterations are run when we use 1:length(x) to set the values of the control variable:
+
+```{r}
+for(i in 1:length(x)) { cat("Element", i, "of the vector\n") }
+```
+
+The reason is that 1:length(x) yields the vector 0 1, providing two values for the control variable.
+
+```{r}
+1:length(x)
+```
+
+If we use seq_along instead, no iterations will be run, because seq_along(x) returns zero values:
+
+```{r}
+for(i in seq_along(x)) { cat("Element", i, "of the vector\n") }
+```
+
+<<no output>>
+
+This is the desired behaviour - if there are no elements in the vector then the loop shouldn’t run! 
+**seq_along** is the safer option, but 1:length(x) is arguably less opaque and therefore easier for humans to read, 
+which also has its benefits.
+
+
+**Exercise 6.10**
+An alternative to standardisation is normalisation, where all numeric variables are rescaled so that their smallest value is 0 
+and their largest value is 1. Write a function that normalises the variables in a data frame containing numeric columns.
+
+```{r}
+normalise <- function(df, ...) {
+      
+  for(i in seq_along(df)) {
+    df[,i] <- (df[,i] - min(df[,i], ...))/(max(df[,i], ...) - min(df[,i], ...))
+  }
+  return(df)
+}
+
+aqn <- normalise(airquality, na.rm = TRUE)
+summary(aqn)
+```
+
+
+**Exercise 6.11**
+The function **list.files** can be used to create a vector containing the names of all files in a folder. 
+The pattern argument can be used to supply a regular expression describing a file name pattern. 
+For instance, if pattern = "\\.csv$" is used, only .csv files will be listed.
+
+Create a loop that goes through all .csv files in a folder and prints the names of the variables for each file.
+
+```{r}
+folder_path <- "data/"
+files <- list.files(folder_path, pattern = "\\.csv$")
+
+for(file in files) {
+  csv_data <- read.csv(paste(folder_path, file, sep = ""))
+  cat(file, "\n")
+  cat(colnames(csv_data))
+  cat("\n\n")
+}
+```
+
+
+### Loops within loops
+
+In some situations, you’ll want to put a loop inside another loop. Such loops are said to be nested.
+An example is if we want to compute the correlation between all pairs of variables in airquality and
+store the result in a matrix:
+
+```{r}
+cor_mat <- matrix(NA, nrow = ncol(airquality), ncol = ncol(airquality))
+
+for(i in seq_along(airquality)) {
+  for(j in seq_along(airquality)) {
+    cor_mat[i,j] <- cor(airquality[[i]], airquality[[j]],
+                        use = "pairwise.complete")
+  }
+}
+
+# Element [i, j] of the matrix now contains the correlation between
+# variables i and j:
+cor_mat
+```
+
+Once again, there is a vectorised solution to this problem, given by cor(airquality, use = "pairwise.complete"). 
+As we will see in Section 6.6, vectorised solutions like this can be several times faster than solutions that use nested loops. 
+In general, solutions involving nested loops tend to be fairly slow; but, on the other hand, they are often easy
+and straightforward to implement.
+
+
+### Keeping track of what’s happening
+
+Sometimes each iteration of your loop takes a long time to run, and you’ll want to monitor its progress. 
+This can be done using printed messages or a progress bar in the Console panel, or sound notifications. 
+We’ll showcase each of these using a loop containing a call to Sys.sleep, which pauses the execution of R commands 
+for a short time (determined by the user).
+
+First, we can use cat to print a message describing the progress.
+Adding \r to the end of a string allows us to print all messages on the same line, with each new message replacing the old one:
+
+```{r}
+# Print each message on a new same line:
+for(i in 1:5) {
+    cat("Step", i, "out of 5\n")
+    Sys.sleep(1) # Sleep for 1 second
+}
+```
+
+
+```{r}
+# Replace the previous message with the new one:
+for(i in 1:5) {
+    cat("Step", i, "out of 5\r")
+    Sys.sleep(1) # Sleep for one second
+}
+```
+
+Adding a progress bar is a little more complicated, because we must first start the bar by using **txtProgressBar** and 
+then update it using **setTxtProgressBar**:
+
+```{r}
+sequence <- 1:10
+pbar <- txtProgressBar(min = 0, max = max(sequence), style = 3)
+
+for(i in sequence) {
+  Sys.sleep(0.5) # Sleep for 0.5 second
+  setTxtProgressBar(pbar, i)
+}
+
+close(pbar)
+```
+
+Finally, the beepr package43 can be used to play sounds, with the function beep:
+
+```{r}
+install.packages("beepr")
+
+library(beepr)
+# Play all 11 sounds available in beepr:
+for(i in 1:11) {
+  beep(sound = i)
+  Sys.sleep(2) # Sleep for 2 seconds
+}
+```
+
+
+### Loops and lists
+
+In our previous examples of loops, it has always been clear from the start how many iterations the loop should run and
+what the length of the output vector (or data frame) should be. This isn’t always the case. To begin with, let’s consider
+the case where the length of the output is unknown or difficult to know in advance. Let’s say that we want to go through 
+the airquality data to find days that are extreme in the sense that at least one variable attains its maximum on those days.
+That is, we wish to find the indices of the maximum of each variable, and store them in a vector. Because several days 
+can have the same temperature or wind speed, there may be more than one such maximal index for each variable.
+For that reason, we don’t know the length of the output vector in advance.
+
+In such cases, it is usually a good idea to store the result from each iteration in a list (Section 5.2), and then 
+collect the elements from the list once the loop has finished. We can create an empty list with one element for each variable
+in airquality using vector:
+
+```{r}
+# Create an empty list with one element for each variable in airquality:
+max_list <- vector("list", ncol(airquality))
+
+# Naming the list elements will help us see which variable the maximal
+# indices belong to:
+names(max_list) <- names(airquality)
+
+# Loop over the variables to find the maxima:
+for(i in seq_along(airquality)) {
+  # Find indices of maximum values:
+  max_index <- which(airquality[[i]] == max(airquality[[i]], na.rm = TRUE))
+      
+  # Add indices to list:
+  max_list[[i]] <- max_index
+}
+
+# Check results:
+print("max_list:")
+max_list
+
+# Collapse to a vector:
+extreme_days <- unlist(max_list)
+print("extreme_days:")
+extreme_days
+```
+
+(In this case, only the variables Month and Days have duplicate maximum values.)
+
+### while loops
+
+In some situations, we want to run a loop until a certain condition is met, meaning that we don’t know in advance
+how many iterations we’ll need. This is more common in numerical optimisation and simulation, but sometimes
+it also occurs in data analyses.
+
+When we don’t know in advance how many iterations are needed, we can use while loops. Unlike for loops
+that iterate a fixed number of times, while loops keep iterating as long as some specified condition is met.
+Here is an example where the loop keeps iterating until i squared is greater than 100:
+
+```{r}
+i <- 1
+
+while(i^2 <= 50) {
+  cat(i,"squared is", i^2, "\n")
+  i <- i+1
+}
+
+i
+```
+
+...
+
+In Section 5.3.3 we saw how rle can be used to find and compute the lengths of runs of equal values in a vector. 
+We can use nested while loops to create something similar. while loops are a good choice here, because we don’t know
+how many runs are in the vector in advance. Here is an example, which you’ll study in more detail in Exercise 6.12:
+
+```{r}
+# Create a vector of 0's and 1's:
+x <- rep(c(0, 1, 0, 1, 0), c(5, 1, 4, 2, 7))
+x
+```
+
+
+```{r}
+# Create empty vectors where the results will be stored:
+run_values <- run_lengths <- c()
+
+# Set the initial condition:
+i <- 1
+
+# Iterate over the entire vector:
+while(i < length(x))
+{
+    # A new run starts:
+    run_length <- 1
+    cat("A run starts at i =", i, "\n")
+    
+    # Check how long the run continues:
+    while(x[i+1] == x[i] & i < length(x))
+    {
+          run_length <- run_length + 1
+          i <- i + 1
+    }
+    
+    i <- i + 1
+    
+    # Save results:
+    run_values <- c(run_values, x[i-1])
+    run_lengths <- c(run_lengths, run_length)
+}
+
+# Present the results:
+data.frame(run_values, run_lengths)
+```
+
+
+**Exercise 6.12**
+Consider the nested while loops in the run length example above. Go through the code and think about what happens in each step.
+What happens when i is 1? When it is 5? When it is 6? Answer the following questions:
+
+- What does the condition for the outer while loop check? Why is it needed?
+
+To check there are still elements in the vector. To avoid an infinite loop.
+
+- What does the condition for the inner while loop check? Why is it needed?
+
+To check if the run continues. If [i+1] == x[i] is TRUE then the next element of x is the same as the current.
+
+- What does the line run_values <- c(run_values, x[i-1]) do?
+
+The line run_values <- c(run_values, x[i-1]) creates a vector combining the existing elements of run_values with x[i-1].
+This allows us to store the results in a vector without specifying its size in advance. 
+Not however that this approach is slower than specifying the vector size in advance, and that you therefore
+should avoid it when using for loops.
+
+
+**Exercise 6.13**
+The control statements break and next can be used inside both for and while loops to control their behaviour further.
+break stops a loop, and next skips to the next iteration of it. Use these functions to modify the following
+piece of code so that the loop skips to the next iteration if x[i] is 0, and breaks if x[i] is NA:
+
+```{r}
+x <- c(1, 5, 8, 0, 20, 0, 3, NA, 18, 2)
+
+for(i in seq_along(x))
+{
+  cat("Step", i, "- reciprocal is", 1/x[i], "\n")
+}
+```
+
+```{r}
+x <- c(1, 5, 8, 0, 20, 0, 3, NA, 18, 2)
+
+for(i in seq_along(x))
+{
+  if(is.na(x[i])) { break }
+  if(x[i] == 0) { next }
+  cat("Step", i, "- reciprocal is", 1/x[i], "\n")
+}
+```
+
+
+**Exercise 6.14**
+Using the cor_mat computation from Section 6.4.2, write a function that computes all pairwise correlations in a data frame
+and uses next to only compute correlations for numeric variables. Test your function by applying it to the msleep data from ggplot2. 
+Could you achieve the same thing without using next?
+
+We can put a conditional statement inside each of the loops, to check that both variables are numeric:
+
+```{r}
+cor_func <- function(df)
+{
+    cor_mat <- matrix(NA, nrow = ncol(df), ncol = ncol(df))
+    for(i in seq_along(df))
+    {
+        if(!is.numeric(df[[i]])) { next }
+        for(j in seq_along(df))
+        {
+            if(!is.numeric(df[[j]])) { next }
+            cor_mat[i, j] <- cor(df[[i]], df[[j]], use = "pairwise.complete")
+        }
+    }
+    return(cor_mat)
+}
+
+# Check that it works:
+str(ggplot2::msleep)
+cor_func(ggplot2::msleep)
+```
+
+An (nicer?) alternative would be to check which columns are numeric and loop over those:
+
+```{r}
+cor_func <- function(df)
+{
+    cor_mat <- matrix(NA, nrow = ncol(df), ncol = ncol(df))
+    indices <- which(sapply(df, class) == "numeric")
+    for(i in indices)
+    {
+        for(j in indices)
+        {
+            cor_mat[i, j] <- cor(df[[i]], df[[j]],
+                                 use = "pairwise.complete")
+        }
+    }
+    return(cor_mat)
+}
+
+# Check that it works:
+cor_func(ggplot2::msleep)
+```
 
 
 
