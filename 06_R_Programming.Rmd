@@ -28,6 +28,8 @@ library(dplyr)
 if (!require(tidyr)) install.packages('tidyr', dependencies = T)
 library(tidyr)
 
+# purrr
+library(purrr)
 ```
 
 ## 6.1 Functions
@@ -1241,5 +1243,627 @@ cor_func(ggplot2::msleep)
 ```
 
 
+## 6.5 Iteration using vectorisation and functionals
+
+Many operators and functions in R take vectors as input and handle them in a highly efficient way, usually by passing the vector on to an optimised function
+written in the C programming language. So if we want to compute the squares of the numbers in a vector, we don’t need to write a loop:
+
+```{r}
+squares <- vector("numeric", 5)
+
+for(i in 1:5)
+{
+    squares[i] <- i^2
+}
+squares
+```
+
+Instead, we can simply apply the ^ operator, which uses fast C code to compute the squares:
+
+```{r}
+squares <- (1:5)^2
+squares
+```
+
+These types of functions and operators are called vectorised. They take a vector as input and apply a function to all its elements, meaning that we can avoid 
+slower solutions utilising loops in R 
+...
+
+A related concept is **functionals**, which are functions that contain a for loop. Instead of writing a for loop, you can use a functional, supplying data, 
+a function that should be applied in each iteration of the loop, and a vector to loop over. 
+This won’t necessarily make your loop run faster, but it does have other benefits:
+
+Shorter code
+Efficient
+No changes to your environment
+No left-overs: for leaves the control variable (e.g., i) in the environment, functionals do not.
+Easy to use with pipes
+
+...
+
+### A first example with apply
+
+The prototypical functional is **apply**, which loops over either the rows or the columns of a data frame46. The arguments are a dataset, the margin to loop over (1 for rows, 2 for columns) and then the function to be applied.
+
+In Section 6.4.1 we wrote a for loop for computing the mean value of each column in a data frame:
+
+```{r}
+# Compute the mean for each column of the airquality data:
+means <- vector("double", ncol(airquality))
+
+# Loop over the variables in airquality:
+for(i in seq_along(airquality))
+{
+      means[i] <- mean(airquality[[i]], na.rm = TRUE)
+}
+```
+
+
+Using apply, we can reduce this to a single line. We wish to use the airquality data, loop over the columns (margin 2), and apply the function mean to each column:
+
+```{r}
+apply(airquality, 2, mean)
+```
+
+
+Additional arguments can be passed to the function inside apply by adding them to the end of the function call:
+
+```{r}
+apply(airquality, 2, mean, na.rm = TRUE)
+```
+
+
+**Exercise 6.15**
+Use apply to compute the maximum and minimum value of each column of the airquality data frame.
+Can you write a function that allows you to compute both with a single call to apply?
+
+```{r}
+apply(airquality, 2, min, na.rm = TRUE)
+```
+
+```{r}
+apply(airquality, 2, max, na.rm = TRUE)
+```
+
+```{r}
+minmax <- function(x, ...)
+{
+      return(c(min = min(x, ...), max = max(x, ...)))
+}
+
+apply(airquality, 2, minmax, na.rm = TRUE)
+```
+
+
+###  Variations on a theme
+
+There are several variations of apply that are tailored to specific problems:
+
+- lapply: takes a function and vector/list as input and returns a list.
+- sapply: takes a function and vector/list as input and returns a vector or matrix.
+- vapply: a version of sapply with additional checks of the format of the output.
+- tapply: for looping over groups, e.g., when computing grouped summaries.
+- rapply: a recursive version of tapply.
+- mapply: for applying a function to multiple arguments; see Section 6.5.7.
+- eapply: for applying a function to all objects in an environment.
+
+We have already seen several ways to compute the mean temperature for different months in the airquality data (Sections 2.12 and 5.7.7, and Exercise 6.7).
+The *apply family offers several more:
+
+```{r}
+# Create a list:
+temps <- split(airquality$Temp, airquality$Month)
+temps
+```
+
+```{r}
+lapply(temps, mean)
+```
+
+```{r}
+sapply(temps, mean)
+```
+
+
+```{r}
+vapply(temps, mean, vector("numeric", 1))
+```
+
+
+```{r}
+tapply(airquality$Temp, airquality$Month, mean)
+```
+
+There is, as that delightful proverb goes, more than one way to skin a cat.  (!!!!!)
+
+
+**Exercise 6.16**
+Use an *apply* function to simultaneously compute the monthly maximum and minimum temperature in the airquality data frame.
+
+```{r}
+minmax <- function(x, ...)
+{
+      return(c(min = min(x, ...), max = max(x, ...)))
+}
+
+temps <- split(airquality$Temp, airquality$Month)
+
+sapply(temps, minmax) # or lapply/vapply
+```
+
+
+```{r}
+# Or:
+tapply(airquality$Temp, airquality$Month, minmax)
+```
+
+
+**Exercise 6.17**
+Use an *apply* function to simultaneously compute the monthly maximum and minimum temperature and windspeed in the airquality data frame.
+
+Hint: start by writing a function that simultaneously computes the maximum and minimum temperature and windspeed for a data frame containing data from a single month.
+
+```{r}
+# minmax 
+minmax <- function(x, ...)
+{
+      return(c(min = min(x, ...), max = max(x, ...)))
+}
+```
+
+This time out, we want to apply this function to two variables: Temp and Wind. We can do this using apply:
+
+```{r}
+minmax2 <- function(x, ...)
+{
+      return(apply(x, 2, minmax))
+}
+```
+
+And finally
+
+```{r}
+tw <- split(airquality[,c("Temp", "Wind")], airquality$Month)
+
+lapply(tw, minmax2)
+```
+
+If we use sapply instead, we lose information about which statistic correspond to which variable, so lapply is a better choice here:
+
+```{r}
+sapply(tw, minmax2)
+```
+
+
+### purrr
+
+If you feel enthusiastic about using **functionals** instead of loops, the tidyverse package **purrr** is a great addition to your toolbox.
+It contains a number of specialised alternatives to the **apply** functions. More importantly, it also contains certain shortcuts that come 
+in handy when working with functionals. For instance, it is fairly common to define a short function inside your functional, which is useful
+for instance when you don’t want the function to take up space in your environment. 
+This can be done a little more elegantly with purrr functions using a shortcut denoted by ~. 
+...
+
+Let’s say that we want to standardise all variables in airquality. The **map** function is the purrr equivalent of lapply.
+We can use it with or without the shortcut, and with or without pipes (we mention the use of pipes now because it will be important in what comes next):
+
+```{r}
+# Base solution:
+#aq_std <- sapply(airquality, function(x) { (x-mean(x))/sd(x) }) #<- lapply returns a list
+aq_std <- sapply(airquality, function(x) { (x-mean(x))/sd(x) })
+aq_std[1:5,]
+```
+
+
+```{r}
+# Base solution with pipe:
+airquality |> sapply(function(x) { (x-mean(x))/sd(x) }) -> aq_std
+aq_std[1:5,]
+```
+
+
+```{r}
+# purrr solution:
+library(purrr)
+as.data.frame(map(airquality, function(x) { (x-mean(x))/sd(x) }))
+```
+
+
+```{r}
+# We can make the purrr solution less verbose using a shortcut:
+as.data.frame(map(airquality, ~(.-mean(.))/sd(.)))
+```
+
+
+```{r}
+# purr solution with pipe and shortcut:
+as.data.frame(airquality |> map(~(.-mean(.))/sd(.)))
+```
+
+Where this shortcut really shines is if you need to use multiple functionals.
+Let’s say that we want to standardise the airquality variables, compute a summary and then extract columns 2 and 5 from the summary 
+(which contains the 1st and 3rd quartile of the data):
+
+```{r}
+# Impenetrable base solution:
+lapply(lapply(lapply(airquality,
+                     function(x) { (x-mean(x))/sd(x) }),
+              summary),
+      function(x) { x[c(2, 5)] })
+```
+
+
+```{r}
+# Base solution with pipe:
+airquality |> 
+      lapply(function(x) { (x-mean(x))/sd(x) }) |>
+      lapply(summary) |>
+      lapply(function(x) { x[c(2, 5)] })
+```
+
+
+```{r}
+# purrr solution:
+airquality |>
+      map(~(.-mean(.))/sd(.)) |>
+      map(summary) |>
+      map(~.[c(2, 5)])
+```
+
+
+### Specialised functions
+
+So far, it may seem like map is just like lapply but with a shortcut for defining functions, which is more or less true. But purrr contains a lot more functionals that you can use, each tailored to specific problems.
+
+For instance, if you need to specify that the output should be a vector of a specific type, you can use:
+
+- map_dbl(data, function) instead of vapply(data, function, vector("numeric", length)),
+- map_int(data, function) instead of vapply(data, function, vector("integer", length)),
+- map_chr(data, function) instead of vapply(data, function, vector("character", length)),
+- map_lgl(data, function) instead of vapply(data, function, vector("logical", length)).
+
+If you need to specify that the output should be a data frame, you can use:
+
+- map_dfr(data, function) instead of sapply(data, function).
+ 
+The ~ shortcut for functions is available for all these **map_** functions. In case you need to pass additional arguments to the function inside the functional,
+just add them at the end of the functional call:
+
+```{r}
+airquality |> map_dbl(max)
+airquality |> map_dbl(max, na.rm = TRUE)
+```
+
+Another specialised function is the **walk** function. It works just like map, but it doesn’t return anything. 
+This is useful if you want to apply a function with no output, such as cat or read.csv:
+
+```{r}
+# Returns a list of NULL values:
+airquality |> map(~cat("Maximum:", max(.), "\n"))
+```
+
+```{r}
+# Returns nothing:
+airquality |> walk(~cat("Maximum:", max(.), "\n")) 
+```
+
+
+**Exercise 6.18**
+Use a map_* function to simultaneously compute the monthly maximum and minimum temperature in the airquality data frame, returning a vector.
+
+```{r}
+minmax <- function(x, ...)
+{
+    return(c(min = min(x, ...), max = max(x, ...)))
+}
+
+library(purrr)
+
+temps <- split(airquality$Temp, airquality$Month)
+
+temps |> map(minmax)
+```
+
+Using a pipe:
+
+```{r}
+airquality |> split(.$Month) |> map(~minmax(.$Temp))
+```
+???
+
+
+### Exploring data with functionals
+
+Functionals are great for creating custom summaries of your data. For instance, if you want to check the data type and number of unique values of each variable
+in your dataset, you can do that with a functional:
+
+
+```{r}
+library(palmerpenguins)
+
+str(penguins)
+```
+
+
+```{r}
+penguins |> map_dfr(~(data.frame(unique_values = length(unique(.)),    # counts how many distinct values the current element contains.
+                                  class = class(.))))                  # returns the R class (e.g., "numeric", "factor") of the element.
+```
+
+You can of course combine purrr functionals with functions from other packages, e.g., to replace length(unique(.)) with a function from your favourite data manipulation package:
+
+```{r}
+# Using uniqueN from data.table:
+library(data.table)
+
+peng <- as.data.table(penguins)
+peng |> map_dfr(~(data.frame(unique_values = uniqueN(.),
+                             class = class(.))))
+```
+
+
+```{r}
+# Using n_distinct from dplyr:
+library(dplyr)
+
+penguins |> map_dfr(~(data.frame(unique_values = n_distinct(.),
+                                  class = class(.))))
+```
+
+When creating summaries, it can often be useful to be able to loop over both the elements of a vector and their indices. 
+In purrr, this is done using the usual map* functions, but with an i (for index) in the beginning of their names, e.g., **imap** and **iwalk**:
+
+```{r}
+# Returns a list of NULL values:
+imap(airquality, ~ cat(.y, ": ", median(.x), "\n", sep = ""))
+```
+
+
+```{r}
+# Returns nothing:
+iwalk(airquality, ~ cat(.y, ": ", median(.x), "\n", sep = "")) 
+```
+
+Note that .x is used to denote the variable, and that .y is used to denote the name of the variable. If i* functions are used on vectors 
+without element names, indices are used instead. The names of elements of vectors can be set using **set_names**:
+
+```{r}
+# Without element names:
+x <- 1:5
+iwalk(x, ~ cat(.y, ": ", exp(.x), "\n", sep = ""))
+```
+
+
+```{r}
+# Set element names:
+x <- set_names(x, c("exp(1)", "exp(2)", "exp(3)", "exp(4)", "exp(5)"))
+iwalk(x, ~ cat(.y, ": ", exp(.x), "\n", sep = ""))
+```
+
+
+**Exercise 6.19**
+Write a function that takes a data frame as input and returns the following information about each variable in the data frame: 
+variable name, number of unique values, data type, and number of missing values. The function should, as you will have guessed, use a functional.
+
+Because we want to use both the variable names and their values, an imap_* function is appropriate here:
+
+```{r}
+data_summary <- function(df)
+{
+    df |> imap_dfr(~(data.frame(variable = .y,
+                                 unique_values = length(unique(.x)),
+                                 class = class(.x),
+                                 missing_values = sum(is.na(.x)) 
+                                )))
+}
+
+# Check that it works:
+library(ggplot2)
+data_summary(msleep)
+```
+
+**Exercise 6.20**
+In Exercise 6.11 you wrote a function that printed the names and variables for all .csv files in a folder given by folder_path. 
+Use purrr functionals to do the same thing.
+
+We combine map and imap to get the desired result. folder_path is the path to the folder containing the .csv files. 
+We must use set_names to set the file names as element names, otherwise only the index of each file (in the file name vector) will be printed:
+
+```{r}
+list.files(folder_path, pattern = "\\.csv$")
+```
+
+
+```{r}
+list.files(folder_path, pattern = "\\.csv$") |> 
+    paste(folder_path, ., sep = "")
+```
+
+???
+
+```{r}
+folder_path <- "data/"
+
+list.files(folder_path, pattern = "\\.csv$") |> 
+    paste(folder_path, ., sep = "") |> 
+    set_names() |> 
+    map(read.csv) |> 
+    imap(~cat(.y, "\n", names(.x), "\n\n"))
+```
+
+6.11:
+```{r}
+folder_path <- "data/"
+files <- list.files(folder_path, pattern = "\\.csv$")
+
+for(file in files) {
+  csv_data <- read.csv(paste(folder_path, file, sep = ""))
+  cat(file, "\n")
+  cat(colnames(csv_data))
+  cat("\n\n")
+}
+```
+
+
+### Keep calm and carry on
+
+Another neat feature of purrr is the **safely** function, which can be used to wrap a function that will be used inside a functional and makes sure that
+the functional returns a result even if there is an error. For instance, let’s say that we want to compute the logarithm of all variables in the msleep data:
+
+```{r}
+library(ggplot2)
+msleep
+```
+
+Note that some columns are character vectors, which will cause log to throw an error:
+
+```{r}
+log(msleep$name)
+log(msleep)
+lapply(msleep, log)
+map(msleep, log)
+```
+
+Note that the error messages we get from lapply and map here don’t give any information about which variable caused the error, making it more difficult to figure out what’s gone wrong.
+
+If first we wrap log with safely, we get a list containing the correct output for the numeric variables, and error messages for the non-numeric variables:
+
+```{r}
+safe_log <- safely(log)
+
+safe_log(msleep$name)
+```
+
+
+```{r}
+lapply(msleep, safe_log)
+```
+
+
+```{r}
+map(msleep, safe_log)
+```
+
+Not only does this tell us where the errors occur, but it also returns the logarithms for all variables that log actually could be applied to.
+
+If you’d like your functional to return some default value, e.g., NA, instead of an error message, you can use **possibly** instead of safely:
+
+```{r}
+pos_log <- possibly(log, otherwise = NA)
+
+map(msleep, pos_log)
+```
+
+
+### Iterating over multiple variables
+
+A final important case is when you want to iterate over more than one variable. This is often the case when fitting statistical models that should be used for prediction, 
+as you’ll see in Section 8.2.5. Another example is when you wish to create plots for several subsets in your data. For instance, we could create a plot of
+body_mass_g versus flipper_length_mm for each combination of species and sex in the penguins data. To do this for a single combination, we’d use something like this:
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(palmerpenguins)
+
+penguins |> filter(species == "Chinstrap",
+                   sex == "male") |> 
+             ggplot(aes(body_mass_g, flipper_length_mm)) +
+                 geom_point() +
+                 ggtitle("Chinstrap, male")
+```
+
+To create such a plot for all combinations of species and sex, we must first create a data frame containing all unique combinations,
+which can be done using the distinct function from dplyr:
+
+```{r}
+combos <- penguins |> distinct(species, sex) |> na.omit()
+
+combos
+```
+
+
+```{r}
+all_species <- combos$species
+all_sexes <- combos$sex
+```
+
+**map2** and **walk2** from purrr loop over the elements of two vectors, x and y, say. They combine the first element of x with the first element of y, the second element of x with the second element of y, and so on – meaning that they won’t automatically loop over all combinations of elements. That is the reason why we use distinct above to create two vectors where each pair (x[i], y[i]) corresponds to a combination. Apart from the fact that we add a second vector to the call, map2 and walk2 work just like map and walk:
+
+```{r}
+# Print all pairs:
+walk2(all_species, all_sexes, ~cat(.x, .y, "\n"))
+```
+
+
+```{r}
+# Create a plot for each pair:
+combos_plots <- map2(all_species, all_sexes, ~{
+                     penguins |> filter(species == .x,
+                                        sex == .y) |> 
+                      ggplot(aes(body_mass_g, flipper_length_mm)) +
+                             geom_point() +
+                             ggtitle(paste(.x, .y, sep =", "))})
+```
+
+
+```{r}
+# View some plots:
+combos_plots[[1]]
+combos_plots[[6]]
+```
+
+
+```{r}
+# Save all six plots in a pdf file, with one plot per page:
+pdf("all_combos_plots.pdf", width = 8, height = 8)
+combos_plots
+dev.off()
+```
+
+The base function mapply could also have been used here. If you need to iterate over more than two vectors, you can use pmap or pwalk,
+which work analogously to map2 and walk2.
+
+
+**Exercise 6.21**
+Using the gapminder data from the gapminder package, create scatterplots of pop and lifeExp for each combination of continent and year.
+Save each plot as a separate .png file.
+
+First, we load the data and create vectors containing all combinations
+
+```{r}
+library(gapminder)
+
+combos <- gapminder |> distinct(continent, year)
+combos
+
+continents <- combos$continent
+years <- combos$year
+```
+
+Next, we create the scatterplots:
+
+```{r}
+# Create a plot for each pair:
+combos_plots <- map2(continents, years, ~{
+                     gapminder |> filter(continent == .x,
+                                         year == .y) |> 
+                      ggplot(aes(pop, lifeExp)) + 
+                        geom_point() +
+                          ggtitle(paste(.x, .y, sep =" in "))})
+```
+
+If instead we just want to save each scatterplot in a separate file, we can do so by putting ggsave (or png + dev.off) inside a walk2 call:
+
+```{r}
+# Create a plot for each pair:
+combos_plots <- walk2(continents, years, ~{
+                     gapminder |> filter(continent == .x,
+                                         year == .y) |> 
+                      ggplot(aes(pop, lifeExp)) + geom_point() +
+                             ggtitle(paste(.x, .y, sep =" in "))
+                      ggsave(paste(.x, .y, ".png", sep = ""),
+                             width = 3, height = 3)})
+```
 
 
