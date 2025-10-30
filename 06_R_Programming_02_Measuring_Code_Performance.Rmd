@@ -1,0 +1,390 @@
+---
+title: "06_R_Programming_02_Measuring_Code_Performance"
+author: "Fran Camacho"
+date: "2025-10-30"
+output: word_document
+---
+
+## 6.6 Measuring code performance
+
+There are probably as many ideas about what good code is as there are programmers. Some prefer readable code; others prefer concise code. 
+Some prefer to work with separate functions for each task, while others would rather continue to combine a few basic functions in new ways. 
+Regardless of what you consider to be good code, there are a few objective measures that can be used to assess the quality of your code.
+In addition to writing code that works and is bug-free, you’d like your code to be:
+
+- Fast: meaning that it runs quickly. Some tasks can take seconds or weeks, depending on what code you write for them. 
+Speed is particularly important if you’re going to run your code many times.
+    
+- Memory efficient: meaning that it uses as little of your computer’s memory as possible. Software running on your computer uses its memory – its RAM – to store data.
+If you’re not careful with RAM, you may end up with a full memory and a sluggish or frozen computer. Memory efficiency is critical if you’re working with big datasets
+that take up a lot of RAM to begin with.
+
+In this section we’ll have a look at how you can measure the speed and memory efficiency of R functions. A caveat is that while speed and memory efficiency are important,
+the most important thing is to come up with a solution that works in the first place. You should almost always start by solving a problem, and then worry
+about speed and memory efficiency, not the other way around. The reason for this is that efficient code often is more difficult to write, read, and debug,
+which can slow down the process of writing it considerably.
+
+Note also that speed and memory usage is system-dependent. The clock frequency and architecture of your processor and speed and size of your RAM will affect 
+how your code performs, as will what operating system you use and what other programs you are running at the same time. That means that if you wish to compare 
+how two functions perform, you need to compare them on the same system under the same conditions.
+
+As a side note, a great way to speed up functions that use either loops or functionals is parallelisation. We cover that topic in Section 12.2.
+
+### Timing functions
+
+To measure how long a piece of code takes to run, we can use **system.time** as follows:
+
+```{r}
+system.time({
+      x <- rnorm(1e6)
+      mean(x)
+      sd(x)
+})
+
+# elapsed is the total time it took to execute the code:
+#rtime
+```
+
+This isn’t the best way of measuring computational time though and doesn’t allow us to compare different functions easily. Instead, we’ll use the bench package, which contains a function called mark that is very useful for measuring the execution time of functions and blocks of code. Let’s start by installing it:
+
+```{r}
+if (!require(bench)) install.packages('bench', dependencies = T)
+library(bench)
+
+```
+
+In Section 6.1.1 we wrote a function for computing the mean of a vector:
+
+```{r}
+average <- function(x)
+{
+      return(sum(x)/length(x))
+}
+```
+
+Is this faster or slower than mean? We can use **mark** to apply both functions to a vector multiple times, and measure how long each execution takes:
+
+```{r}
+library(bench)
+
+x <- 1:100
+
+bm <- mark(mean(x), average(x))
+
+bm # Or use View(bm) if you don't want to print the results in the console panel.
+```
+
+mark has executed both function n_itr times each, and measured how long each execution took to perform. The execution time varies – in the output, you can see the shortest (min) 
+and median (median) execution times, as well as the number of iterations per second (itr/sec). Be a little wary of the units for the execution times so that you don’t get them confused
+– a millisecond (ms, 10−3 seconds) is 1,000 microseconds (µs, 1 µs is 10−6 seconds), and 1 microsecond is 1,000 nanoseconds (ns, 1 ns is 10−9 seconds).
+
+The result here may surprise you – it appears that average is faster than mean! 
+The reason is that mean does a lot of things that average does not: it checks the data type and gives error messages if the data is of the wrong type (e.g., character), 
+and then traverses the vector twice to lower the risk of errors due to floating point arithmetics. All of this takes time and makes the function slower (but safer to use).
+
+We can plot the results using the **ggbeeswarm** package:
+
+```{r}
+if (!require(ggbeeswarm)) install.packages('ggbeeswarm', dependencies = T)
+library(ggbeeswarm)
+
+
+plot(bm)
+```
+
+It is also possible to place blocks of code inside curly brackets, { }, in mark. Here is an example comparing a vectorised solution for computing 
+the squares of a vector with a solution using a loop:
+
+```{r}
+x <- 1:100
+
+bm <- mark(x^2,
+    {
+        y <- x
+        for(i in seq_along(x))
+        {
+            y[i] <- x[i]*x[i]
+        }
+        y
+    })
+bm
+
+plot(bm)
+```
+
+Although the above code works, it isn’t the prettiest, and the bm table looks a bit confusing because of the long expression for the code block. 
+I prefer to put the code block inside a function instead:
+
+```{r}
+squares <- function(x)
+{
+        y <- x
+        for(i in seq_along(x))
+        {
+            y[i] <- x[i]*x[i]
+        }
+        return(y)
+}
+
+x <- 1:100
+
+bm <- mark(x^2, squares(x))
+bm
+
+plot(bm)
+```
+
+Note that squares(x) is faster than the original code block:
+
+```{r}
+bm <- mark(squares(x),
+    {
+        y <- x
+        for(i in seq_along(x))
+        {
+            y[i] <- x[i]*x[i]
+        }
+        y
+    })
+
+bm
+
+plot(bm)
+```
+
+Functions in R are compiled the first time they are run, which often makes them run faster than the same code would have outside of the function. 
+We’ll discuss this further next.
+
+
+### Measuring memory usage (and a note on compilation)
+
+mark also shows us how much memory is allocated when running different code blocks, in the **mem_alloc** column of the output.
+
+Unfortunately, measuring memory usage is a little tricky. To see why, restart R (yes, really, this is important!), and then run the following code to benchmark x^2 versus squares(x):
+
+```{r}
+library(bench)
+
+squares <- function(x)
+{
+        y <- x
+        for(i in seq_along(x))
+        {
+            y[i] <- x[i]*x[i]
+        }
+        return(y)
+}
+
+x <- 1:100
+```
+
+
+```{r}
+bm <- mark(x^2, squares(x))
+bm
+```
+
+We execute again instead of restarting R session:
+
+```{r}
+bm2 <- mark(x^2, squares(x))
+bm2
+```
+
+
+This time, both functions use less memory, and squares now uses less memory than x^2. What’s going on?    
+
+Computers can’t read code written in R or most other programming languages directly. Instead, the code must be translated to machine code that the computer’s processor uses, 
+in a process known as compilation. R uses just-in-time compilation of functions and loops, meaning that it translates the R code for new functions and loops to machine code during execution.
+Other languages, such as C, use ahead-of-time compilation, translating the code prior to execution. The latter can make the execution much faster, but some flexibility is lost, 
+and the code needs to be run through a compiler ahead of execution, which also takes time. When doing the just-in-time compilation, R needs to use some of the computer’s memory, 
+which causes the memory usage to be greater the first time the function is run. However, if an R function is run again, it has already been compiled, meaning R doesn’t have 
+to allocate memory for compilation.
+
+In conclusion, if you want to benchmark the memory usage of functions, make sure to run them once before benchmarking. Alternatively, if your function takes a long time to run, 
+you can compile it without running it using the cmpfun function from the compiler package:
+
+```{r}
+library(compiler)
+
+squares <- cmpfun(squares)
+squares(1:10)
+```
+
+**Exercise 6.22**
+Write a function for computing the mean of a vector using a for loop. How much slower than mean is it? Which function uses more memory?
+
+```{r}
+mean_loop <- function(x)
+{
+      m <- 0
+      n <- length(x)
+      for(i in seq_along(x))
+      {
+            m <- m + x[i]
+      }
+      return(m/n)
+}
+
+mean_loop2 <- function(x)
+{
+      m <- 0
+      n <- length(x)
+      for(i in seq_along(x))
+      {
+            m <- m + x[i]/n
+      }
+      return(m)
+}
+```
+
+
+```{r}
+x <- 1:120
+mean_loop(x)
+mean_loop2(x)
+```
+
+
+```{r}
+x <- 1:10000
+mean_loop(x)
+mean(x)
+
+library(bench)
+mark(mean(x), mean_loop(x))
+```
+
+```{r}
+x <- 1:10000
+mean_loop2(x)
+mean(x)
+
+library(bench)
+mark(mean(x), mean_loop2(x))
+```
+
+mean_loop is several times slower than mean. The memory usage of both functions is negligible.
+
+
+Both loops (mine and the one from the book):
+
+```{r}
+x <- 1:1000000
+mean_loop2(x)
+mean_loop(x)
+
+library(bench)
+mark(mean_loop2(x), mean_loop(x))
+```
+
+.. not clear which mean loop is better ...
+
+
+**Exercise 6.23**
+We have seen three different ways of filtering a data frame to only keep rows that fulfil a condition: using base R, data.table, and dplyr. 
+Suppose that we want to extract all flights from 1 January from the flights data in the **nycflights** package:
+
+```{r}
+library(data.table)
+library(dplyr)
+library(nycflights13)
+# Read about the data:
+?flights
+
+# Make a data.table copy of the data:
+flights.dt <- as.data.table(flights)
+```
+
+
+```{r}
+# Filtering using base R:
+flights0101_baseR <- flights[flights$month == 1 & flights$day == 1,]
+```
+
+
+```{r}
+# Filtering using data.table:
+flights0101_datatable <- flights.dt[month == 1 & day == 1,]
+```
+
+
+```{r}
+# Filtering using dplyr:
+flights0101_dplyr <- flights |> filter(month ==1, day == 1)
+```
+
+
+Compare the speed and memory usage of these three approaches. Which has the best performance?
+
+We can compare the three solutions as follows:
+
+```{r}
+library(data.table)
+library(dplyr)
+library(nycflights13)
+library(bench)
+
+# Make a data.table copy of the data:
+flights.dt <- as.data.table(flights)
+
+# Wrap the solutions in functions (using global assignment to better monitor memory usage):
+base_filter <- function() { flights0101 <<- flights[flights$month == 1 & flights$day == 1,] }
+
+dt_filter <- function() { flights0101 <<- flights.dt[month == 1 & day == 1,] }
+
+dplyr_filter <- function() { flights0101 <<- flights |> filter(month ==1, day == 1) }
+
+# Compile the functions:
+library(compiler)
+
+base_filter <- cmpfun(base_filter)
+dt_filter <- cmpfun(dt_filter)
+dplyr_filter <- cmpfun(dplyr_filter)
+
+# benchmark the solutions:
+bm <- mark(base_filter(), dt_filter(), dplyr_filter())
+bm
+plot(bm)
+```
+
+We convert the result of the three functions to the same structure (data.frame):
+
+```{r}
+library(data.table)
+library(dplyr)
+library(nycflights13)
+library(bench)
+
+flights.dt <- as.data.table(flights)
+
+base_filter <- function() {
+  res <- flights[flights$month == 1 & flights$day == 1,]
+  as.data.frame(res)          # ensure data.frame
+}
+dt_filter <- function() {
+  res <- flights.dt[month == 1 & day == 1,]
+  as.data.frame(res)          # convert to data.frame
+}
+dplyr_filter <- function() {
+  flights |> filter(month ==1, day == 1) -> res
+  as.data.frame(res)          # tibble → data.frame
+}
+
+library(compiler)
+base_filter <- cmpfun(base_filter)
+dt_filter   <- cmpfun(dt_filter)
+dplyr_filter<- cmpfun(dplyr_filter)
+
+# benchmark the solutions:
+bm <- mark(base_filter(), dt_filter(), dplyr_filter())
+bm
+plot(bm)
+```
+
+We see that dplyr is substantially faster and more memory efficient than the base R solution, but that data.table beats them both by a margin.
+
+
+
+
+
